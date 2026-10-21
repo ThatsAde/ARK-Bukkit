@@ -41,11 +41,11 @@ module-*        (futuri: solo core-api [+ core-domain])
 | --- | --- | --- | --- |
 | `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)` dei moduli | Aggiunta di un nuovo progetto Gradle |
 | `gradle.properties` | ✅ | parallel, caching, `-Xmx2G` | Raramente |
-| `gradle/libs.versions.toml` | 🔁 Task 1 | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
+| `gradle/libs.versions.toml` | ✅ | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
 | `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()` | Regole comuni a tutti i moduli |
-| `core-api/build.gradle.kts` | 🔁 Task 1 | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
-| `core-domain/build.gradle.kts` | 🔁 Task 1 | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
-| `core-platform/build.gradle.kts` | 🔁 Task 1, 9 | dipendenze runtime, Paper compileOnly (+ testImplementation), shadow con relocation, `processResources` (versione in `plugin.yml`), `runServer` | Nuove librerie, nuovi `module-*`, relocation |
+| `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
+| `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
+| `core-platform/build.gradle.kts` | ✅ (Task 9 aggiunge relocation e processResources) | dipendenze runtime, Paper compileOnly (+ testImplementation), shadow, `runServer` (relocation e `processResources` per la versione in `plugin.yml` arrivano col Task 9) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
