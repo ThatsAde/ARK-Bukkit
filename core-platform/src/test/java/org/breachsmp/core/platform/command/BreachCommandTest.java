@@ -15,4 +15,12 @@ class BreachCommandTest {
         assertEquals(List.of(), BreachCommand.suggestions(new String[]{"x"}));
         assertEquals(List.of(), BreachCommand.suggestions(new String[]{"health", "x"}));
     }
+
+    @Test
+    void describeUnwrapsCompletionException() {
+        var wrapped = new java.util.concurrent.CompletionException(new IllegalStateException("DB irraggiungibile"));
+        assertEquals("DB irraggiungibile", BreachCommand.describe(wrapped));
+        assertEquals("IllegalStateException", BreachCommand.describe(new IllegalStateException()));
+        assertEquals("boom", BreachCommand.describe(new RuntimeException("boom")));
+    }
 }

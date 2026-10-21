@@ -14,6 +14,34 @@
 
 ---
 
+## 2026-10-21 – M0 – correzioni della review finale (C1, I1, M1, M4)
+
+**Cosa**
+- **C1 (critico)**: lo `shadowJar` di Shadow 9.6.1 usa `DuplicatesStrategy.EXCLUDE`, quindi `mergeServiceFiles()` vedeva solo la prima copia di ogni `META-INF/services/*`. Nel jar `org.breachsmp.core.libs.flyway.core.extensibility.Plugin` aveva solo le 3 voci di `flyway-mysql`: le voci di `flyway-core` (`ClasspathLocationHandlerImpl`, `CoreResourceTypeProvider`, ...) andavano perse, quindi `classpath:db/migration` non sarebbe stato risolvibile a runtime. Fix: `filesMatching("META-INF/services/**") { duplicatesStrategy = DuplicatesStrategy.INCLUDE }` (solo sui servizi, non su tutto il jar) + `inputs.property` per invalidare la cache dello `shadowJar` (la closure non è un input). Nuovo task `verifyShadowJar` agganciato a `check`/`build`: apre il jar e fallisce se il file di servizio Flyway non contiene `...flyway.core.internal.scanner.classpath.ClasspathLocationHandlerImpl` e `...flyway.database.mysql.mariadb.MariaDBDatabaseType`, o se `java.sql.Driver` non contiene `org.breachsmp.core.libs.mariadb.Driver`.
+- **Correzione della voce Task 9**: l'affermazione "i file `META-INF/services` ... sono uniti" era **FALSA** per Flyway (e l'avviso `DuplicatesStrategy ... EXCLUDE` della voce "M0 – chiusura" era il sintomo). Ora è vero e verificato dal task `verifyShadowJar`.
+- **I1**: `ARKPlugin.onEnable` cattura `RuntimeException | LinkageError | ServiceConfigurationError`, così relocation/linkage rotti producono il SEVERE italiano e il disable esplicito.
+- **M1**: `BreachCommand.describe(Throwable)` scarta il `CompletionException` e mostra il messaggio della causa (fallback: nome semplice della classe).
+- **M4**: `ConfigLoader` usa `LoaderOptions.setAllowDuplicateKeys(false)`; una chiave duplicata dà `ConfigException` "Impossibile leggere config.yml: ...".
+
+**File**
+- `core-platform/build.gradle.kts`, `ARKPlugin.java`, `BreachCommand.java`, `ConfigLoader.java`, `BreachCommandTest.java`, `ConfigLoaderTest.java`, `map.md`, `log.md`.
+
+**Verifica**
+- TDD M4: `ConfigLoaderTest.duplicateKeysAreRejected` rosso (`AssertionFailedError`) prima del fix, verde dopo.
+- `.\gradlew.bat :core-platform:test` -> `BUILD SUCCESSFUL`.
+- `.\gradlew.bat clean build` -> `BUILD SUCCESSFUL`; `:core-platform:verifyShadowJar` eseguito e passato; nessun avviso `DuplicatesStrategy` ne' duplicati. Test: 68 totali, 0 failure, 0 error, 3 skipped (`MigratorIT`, Docker assente).
+- Prova negativa: con `ClasspathLocationHandlerImplXX` nel task, `verifyShadowJar` fallisce ("Jar shadow non valido: ... non contiene ...XX"); ripristinato.
+- Jar: file di servizio Flyway = 41 righe (2 commenti + 39 voci, tutte `org.breachsmp.core.libs.flyway.*`); `java.sql.Driver` = `org.breachsmp.core.libs.mariadb.Driver`; servizi mariadb: AuthenticationPluginFactory 7, Codec 37, CredentialPlugin 3, TlsSocketPlugin 1. Nessuna classe fuori da `org/breachsmp/` (esclusi gli ingressi `META-INF/versions/*/org/breachsmp/`).
+
+**Decisioni**
+- Nessun ID `D-xx` nuovo.
+
+**Aperto**
+- Smoke test manuale invariato (vedi "Stato attuale"). Differiti (nel ledger): M2 drain/interrupt in close, M3 lavoro sul main in `onDisable`, M5 freeze del catalogo, M6 asserzioni dei test.
+- Nota: la closure `filesMatching` non è un input di Gradle; se cambia, usare `clean` o `--rerun-tasks` (un primo `shadowJar` incrementale dopo la modifica ha restituito il jar vecchio).
+
+---
+
 ## 2026-10-21 – M0 – chiusura (codice completo, smoke test manuale in attesa)
 
 **Cosa**
@@ -64,7 +92,7 @@
 **Verifica**
 - RED: `.\gradlew.bat :core-platform:test --tests "...PluginYmlTest"` -> `cannot find symbol class ARKPlugin`, `BUILD FAILED`.
 - GREEN: stesso comando -> `BUILD SUCCESSFUL`. `.\gradlew.bat build --rerun-tasks` -> `BUILD SUCCESSFUL`; 66 test in totale, 3 skipped (`MigratorIT`, Docker assente), 0 failure.
-- Step 7 (jar `core-platform-1.0-SNAPSHOT.jar`): dopo la relocation jackson nessuna classe fuori da `org/breachsmp/`; le uniche 3 righe segnalate sono `META-INF/versions/{11,15}/org/breachsmp/core/libs/mariadb/...` (multi-release, già rilocate). `plugin.yml` contiene `version: '1.0-SNAPSHOT'`; presenti `config.yml` e `db/migration/V001__platform_create_player.sql`. I file `META-INF/services` (`java.sql.Driver`, flyway `...Plugin`, mariadb `AuthenticationPluginFactory/Codec/CredentialPlugin/TlsSocketPlugin`) sono uniti e puntano a nomi rilocati `org.breachsmp.core.libs.*`.
+- Step 7 (jar `core-platform-1.0-SNAPSHOT.jar`): dopo la relocation jackson nessuna classe fuori da `org/breachsmp/`; le uniche 3 righe segnalate sono `META-INF/versions/{11,15}/org/breachsmp/core/libs/mariadb/...` (multi-release, già rilocate). `plugin.yml` contiene `version: '1.0-SNAPSHOT'`; presenti `config.yml` e `db/migration/V001__platform_create_player.sql`. I file `META-INF/services` (`java.sql.Driver`, flyway `...Plugin`, mariadb `AuthenticationPluginFactory/Codec/CredentialPlugin/TlsSocketPlugin`) sono uniti e puntano a nomi rilocati `org.breachsmp.core.libs.*`. **[CORREZIONE: falso per Flyway, vedi la voce "correzioni della review finale (C1...)": il file Plugin perdeva le voci di flyway-core.]**
 - Step 8 – in attesa: smoke test manuale a cura dell'utente. Comando: `.\gradlew.bat :core-platform:runServer` (EULA in `core-platform/run/eula.txt`; atteso errore "File della password DB mancante" e disabilitazione del plugin).
 - Step 9 – in attesa: smoke test manuale a cura dell'utente con MariaDB (creare DB/utente come da brief, password in `core-platform/run/plugins/BreachCore/secrets/db-password`), poi `.\gradlew.bat :core-platform:runServer`; atteso `migrazioni applicate ora: 1`, `breach health` -> HEALTHY, al secondo avvio `migrazioni applicate ora: 0`.
 

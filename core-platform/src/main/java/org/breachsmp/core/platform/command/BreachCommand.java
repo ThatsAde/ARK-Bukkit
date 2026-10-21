@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 
 /** {@code /breach <sottocomando>}: strumenti di amministrazione (spec §14). In M0: {@code health}. */
@@ -66,11 +67,17 @@ public final class BreachCommand implements BasicCommand {
         // Il controllo gira sul thread DB; la risposta torna sul main (I2)
         health.check().whenCompleteAsync((report, error) -> {
             if (error != null) {
-                sender.sendMessage(Component.text("Health check fallito: " + error.getMessage(), NamedTextColor.RED));
+                sender.sendMessage(Component.text("Health check fallito: " + describe(error), NamedTextColor.RED));
                 return;
             }
             send(sender, report);
         }, main);
+    }
+
+    /** Testo leggibile dell'errore: scarta il wrapper {@link CompletionException}; senza messaggio usa il nome della classe. */
+    static String describe(Throwable error) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+        return cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
     }
 
     private static void send(CommandSender sender, HealthReport report) {

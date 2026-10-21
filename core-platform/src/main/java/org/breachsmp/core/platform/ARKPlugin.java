@@ -17,6 +17,7 @@ import org.breachsmp.core.platform.service.SimpleServiceRegistry;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
+import java.util.ServiceConfigurationError;
 import java.util.logging.Level;
 
 /**
@@ -35,7 +36,7 @@ public final class ARKPlugin extends JavaPlugin {
     public void onEnable() {
         try {
             start();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
             getLogger().log(Level.SEVERE, "Avvio di BreachCore fallito, il plugin viene disabilitato: " + e.getMessage(), e);
             getServer().getPluginManager().disablePlugin(this);
         }

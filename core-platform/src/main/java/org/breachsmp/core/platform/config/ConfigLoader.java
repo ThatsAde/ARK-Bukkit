@@ -38,7 +38,9 @@ public final class ConfigLoader {
         }
         Object root;
         try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            root = new Yaml(new SafeConstructor(new LoaderOptions())).load(reader);
+            LoaderOptions options = new LoaderOptions();
+            options.setAllowDuplicateKeys(false); // chiavi duplicate = errore, non "vince l'ultima"
+            root = new Yaml(new SafeConstructor(options)).load(reader);
         } catch (IOException | YAMLException e) {
             throw new ConfigException(List.of("Impossibile leggere " + file.getFileName() + ": " + e.getMessage()));
         }

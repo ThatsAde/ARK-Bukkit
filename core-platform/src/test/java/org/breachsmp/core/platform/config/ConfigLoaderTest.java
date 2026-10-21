@@ -157,6 +157,17 @@ class ConfigLoaderTest {
         assertTrue(ex.errors().getFirst().startsWith("Il file della password DB è vuoto"));
     }
 
+    @Test
+    void duplicateKeysAreRejected() {
+        var errors = errorsOf(VALID + """
+                modules:
+                  economy:
+                    enabled: false
+                """);
+        assertEquals(1, errors.size());
+        assertTrue(errors.getFirst().startsWith("Impossibile leggere config.yml:"), errors.getFirst());
+    }
+
     private CoreConfig load(String yaml) throws IOException {
         Path file = dataDir.resolve("config.yml");
         Files.writeString(file, yaml);

@@ -45,7 +45,7 @@ module-*        (futuri: solo core-api [+ core-domain])
 | `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()` | Regole comuni a tutti i moduli |
 | `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
 | `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
-| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), `runServer` | Nuove librerie, nuovi `module-*`, relocation |
+| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
@@ -143,7 +143,7 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 
 | Metodo | A cosa serve | Quando toccarlo |
 | --- | --- | --- |
-| `onEnable()` | Chiama `start()`; su `RuntimeException` logga SEVERE e disabilita il plugin (fail-closed) | Raramente |
+| `onEnable()` | Chiama `start()`; su `RuntimeException`, `LinkageError` o `ServiceConfigurationError` (relocation/linkage rotti) logga SEVERE e disabilita il plugin (fail-closed) | Raramente |
 | `onDisable()` | Arresto in ordine inverso: moduli → executor → pool DB; tollera avvio parziale (campi null) | Nuove risorse da chiudere |
 | `private start()` | Sequenza di avvio 1–9 | Nuovi componenti di piattaforma |
 
@@ -153,7 +153,7 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 | --- | --- | --- |
 | `CoreConfig` (record) | Config validata: `configVersion`, `database`, `modules` | `boolean moduleEnabled(String id)` → `false` se assente (opt-in, D-08) |
 | `DatabaseConfig` (record) | `host, port, name, user, passwordFile (Path assoluto), poolSize, maxLifetimeSeconds` | `String jdbcUrl()` → `jdbc:mariadb://host:port/name`; `int effectivePoolSize(int cores)` → `poolSize` se > 0, altrimenti `min(10, cores*2)` |
-| `ConfigLoader` | Lettura YAML (SnakeYAML di Paper, `SafeConstructor`) + validazione | `static CoreConfig load(Path file, Path dataDir)`; `static CoreConfig parse(Object root, Path dataDir)` (package-private, raccoglie **tutti** gli errori); `static String readPassword(Path)`; `CURRENT_VERSION = 1` |
+| `ConfigLoader` | Lettura YAML (SnakeYAML di Paper, `SafeConstructor`, chiavi duplicate vietate: `setAllowDuplicateKeys(false)` -> `ConfigException` "Impossibile leggere config.yml: ...") + validazione | `static CoreConfig load(Path file, Path dataDir)`; `static CoreConfig parse(Object root, Path dataDir)` (package-private, raccoglie **tutti** gli errori); `static String readPassword(Path)`; `CURRENT_VERSION = 1` |
 | `ConfigException` | Errore di configurazione con la lista completa degli errori | `List<String> errors()` |
 
 Chiavi `config.yml` (default in `core-platform/src/main/resources/config.yml`):
@@ -168,7 +168,7 @@ Chiavi `config.yml` (default in `core-platform/src/main/resources/config.yml`):
 | `database.max_lifetime_seconds` | 30–28000 (sotto il `wait_timeout` di MariaDB) | `1500` |
 | `modules.<id>.enabled` | boolean; id `[a-z][a-z0-9-]*` | sezione vuota |
 
-Test: `ConfigLoaderTest` (incluso: il `config.yml` spedito nel jar è valido).
+Test: `ConfigLoaderTest` (incluso: chiavi duplicate rifiutate; il `config.yml` spedito nel jar è valido).
 
 ### `platform/db/` ✅
 
@@ -225,9 +225,10 @@ Test: `HealthReportTest`, `HealthServiceTest` (DataSource finti via `java.lang.r
 | `execute(CommandSourceStack, String[])` | `health` → `health(sender)`; altrimenti messaggio d'uso |
 | `private health(CommandSender)` | Controlla `breach.admin.health`, chiama `HealthService.check()`, risponde sul main (`whenCompleteAsync(..., main)`) con colore per stato |
 | `suggest(...)` / `static List<String> suggestions(String[])` | Tab-completion dei sottocomandi |
+| `static String describe(Throwable)` | Testo d'errore per il sender: scarta il wrapper `CompletionException` (usa la causa), fallback al nome semplice della classe |
 | `permission()` | `breach.command` (accesso al comando) |
 
-Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.health"`, `SUBCOMMANDS = List.of("health")`. Test: `BreachCommandTest` (solo `suggestions`).
+Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.health"`, `SUBCOMMANDS = List.of("health")`. Test: `BreachCommandTest` (`suggestions`, `describe`).
 
 ---
 

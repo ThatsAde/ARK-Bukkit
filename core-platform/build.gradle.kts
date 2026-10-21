@@ -1,3 +1,5 @@
+import java.util.zip.ZipFile
+
 plugins {
     id("breach.java-conventions")
     alias(libs.plugins.shadow)
@@ -39,6 +41,12 @@ tasks {
     shadowJar {
         archiveClassifier = ""
         // Flyway e il driver MariaDB si trovano via ServiceLoader: i file META-INF/services vanno uniti e rilocati
+        // Shadow usa EXCLUDE sui duplicati: senza INCLUDE il transformer vede solo la prima copia di ogni file di servizio
+        filesMatching("META-INF/services/**") {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        }
+        // La closure sopra non fa parte degli input: questa proprietà invalida la cache se la strategia cambia
+        inputs.property("servicesDuplicatesStrategy", "INCLUDE")
         mergeServiceFiles()
         // Paper fornisce già slf4j (D-11)
         dependencies {
@@ -49,6 +57,45 @@ tasks {
         relocate("org.flywaydb", "$libsPackage.flyway")
         relocate("org.mariadb.jdbc", "$libsPackage.mariadb")
         relocate("com.fasterxml.jackson", "$libsPackage.jackson")
+    }
+
+
+    // Guardia di regressione (review finale C1): i file di servizio uniti devono contenere le voci attese, rilocate
+    val verifyShadowJar = register("verifyShadowJar") {
+        group = "verification"
+        description = "Verifica che il jar shadow contenga i file META-INF/services uniti e rilocati (Flyway, driver MariaDB)"
+        val jarFile = shadowJar.flatMap { it.archiveFile }
+        dependsOn(shadowJar)
+        mustRunAfter(jar) // shadowJar e jar scrivono lo stesso file (classifier vuoto)
+        inputs.file(jarFile)
+        doLast {
+            val expected = mapOf(
+                "META-INF/services/org.breachsmp.core.libs.flyway.core.extensibility.Plugin" to listOf(
+                    "org.breachsmp.core.libs.flyway.core.internal.scanner.classpath.ClasspathLocationHandlerImpl",
+                    "org.breachsmp.core.libs.flyway.database.mysql.mariadb.MariaDBDatabaseType"
+                ),
+                "META-INF/services/java.sql.Driver" to listOf("org.breachsmp.core.libs.mariadb.Driver")
+            )
+            ZipFile(jarFile.get().asFile).use { zip ->
+                val problems = mutableListOf<String>()
+                expected.forEach { (path, entries) ->
+                    val entry = zip.getEntry(path)
+                    if (entry == null) {
+                        problems += "file di servizio mancante: $path"
+                    } else {
+                        val lines = zip.getInputStream(entry).bufferedReader().readLines().map { it.trim() }
+                        entries.filter { it !in lines }.forEach { problems += "$path non contiene $it" }
+                    }
+                }
+                if (problems.isNotEmpty()) {
+                    throw GradleException("Jar shadow non valido:\n - " + problems.joinToString("\n - "))
+                }
+            }
+        }
+    }
+
+    check {
+        dependsOn(verifyShadowJar)
     }
 
     build {
