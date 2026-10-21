@@ -147,7 +147,7 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 | `onDisable()` | Arresto in ordine inverso: moduli → executor → pool DB; tollera avvio parziale (campi null) | Nuove risorse da chiudere |
 | `private start()` | Sequenza di avvio 1–9 | Nuovi componenti di piattaforma |
 
-### `platform/config/` ⏳ Task 6
+### `platform/config/` ✅ Task 6
 
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
@@ -236,7 +236,7 @@ Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.he
 | File | Stato | Contenuto | Quando toccarlo |
 | --- | --- | --- | --- |
 | `src/main/resources/plugin.yml` | ⏳ Task 9 | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
-| `src/main/resources/config.yml` | ⏳ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
+| `src/main/resources/config.yml` | ✅ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
 | `src/main/resources/db/migration/V001__platform_create_player.sql` | ⏳ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
 
 Migrazioni applicate (aggiorna a ogni nuova migrazione):

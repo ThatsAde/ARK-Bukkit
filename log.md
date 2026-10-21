@@ -8,9 +8,36 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3, Task 4 e Task 5 completati.
-- **Prossimo passo:** Task 6 del piano M0 (`core-platform`: `platform/config/`).
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3, Task 4, Task 5 e Task 6 completati.
+- **Prossimo passo:** Task 7 del piano M0 (`core-platform`: `platform/db/`, DataSourceFactory, Migrator, V001).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 6 – configurazione validata (config.yml)
+
+**Cosa**
+- `ConfigLoader.load(file, dataDir)`: legge `config.yml` con SnakeYAML (`SafeConstructor`, quello di Paper) e valida tutto raccogliendo **tutti** gli errori in una sola `ConfigException`. Errori coperti: file mancante, YAML malformato, radice non mappa, `config_version` diversa da `1`, sezione `database` mancante, valori mancanti/fuori intervallo (`port` 1–65535, `pool_size` 0–100, `max_lifetime_seconds` 30–28000), `modules` non mappa, id modulo non valido, `modules.<id>.enabled` non booleano.
+- `ConfigLoader.readPassword(path)`: legge la password dal file, toglie spazi e a capo finali; file mancante o vuoto → `ConfigException` con messaggio esplicito.
+- `DatabaseConfig` (record): `jdbcUrl()` → `jdbc:mariadb://host:port/name`; `effectivePoolSize(cores)` → `poolSize` se > 0, altrimenti `min(10, cores*2)`. Il percorso della password è risolto rispetto alla cartella del plugin.
+- `CoreConfig` (record): `configVersion`, `database`, `modules` (copia immutabile); `moduleEnabled(id)` → `false` se il modulo non è configurato (D-08).
+- `config.yml` di default in `core-platform/src/main/resources/`: `database` con `localhost`/`breach_game`/`bc_game`, `password_file: secrets/db-password`, `modules: {}`.
+
+**File**
+- Creati: `core-platform/src/main/java/org/breachsmp/core/platform/config/ConfigException.java`, `…/config/DatabaseConfig.java`, `…/config/CoreConfig.java`, `…/config/ConfigLoader.java`, `core-platform/src/main/resources/config.yml`, test `core-platform/src/test/java/org/breachsmp/core/platform/config/ConfigLoaderTest.java` (15 test).
+- Modificati: `map.md` (§6 `platform/config/` → ✅, §7 `config.yml` → ✅), `log.md`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-platform:test --tests "org.breachsmp.core.platform.config.ConfigLoaderTest"` con solo il test scritto → `:core-platform:compileTestJava FAILED`, `20 errors`, `cannot find symbol ... class ConfigException / CoreConfig / DatabaseConfig`, `ConfigLoader`, `BUILD FAILED in 1s`.
+- GREEN: stesso comando → `BUILD SUCCESSFUL in 3s`; `ConfigLoaderTest` tests=15 failures=0 errors=0.
+- Suite completa: `.\gradlew.bat :core-platform:test` → `BUILD SUCCESSFUL in 2s`; `ConfigLoaderTest` 15, `ModuleRegistryTest` 13, `PlatformExecutorsTest` 6, `SimpleServiceRegistryTest` 4, `DefaultModuleContextTest` 1 (totale 39, 0 failure, 0 error).
+
+**Decisioni**
+- Nessuna decisione nuova: implementazione come da piano (Task 6), con D-08 (moduli opt-in, fail-closed) e D-09 (password solo da file).
+
+**Aperto**
+- Le modifiche a `config.yml` richiedono riavvio (il reload a caldo arriverà con i primi tunable).
+- `ConfigLoader.parse(Object, Path)` è package-private e testato solo indirettamente tramite `load`.
 
 ---
 

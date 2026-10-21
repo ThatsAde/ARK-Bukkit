@@ -1,0 +1,21 @@
+# BreachCore – configurazione principale.
+# Le modifiche richiedono un riavvio del server (il ricaricamento a caldo arriverà con i primi tunable).
+config_version: 1
+
+database:
+  host: localhost
+  port: 3306
+  name: breach_game
+  user: bc_game
+  # File, relativo alla cartella del plugin, che contiene SOLO la password. Mai scrivere la password qui.
+  password_file: secrets/db-password
+  # 0 = automatico: min(10, core * 2)
+  pool_size: 0
+  # Secondi; deve restare sotto il wait_timeout di MariaDB (default 28800).
+  max_lifetime_seconds: 1500
+
+# Feature flag dei moduli: un modulo non elencato è disabilitato.
+# Esempio:
+#   economy:
+#     enabled: true
+modules: {}
