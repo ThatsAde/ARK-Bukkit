@@ -8,9 +8,33 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3, Task 4, Task 5, Task 6 e Task 7 completati.
-- **Prossimo passo:** Task 8 del piano M0.
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0 – Task 8 completati.
+- **Prossimo passo:** Task 9 del piano M0 (`ARKPlugin` bootstrap, `plugin.yml`, smoke test).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 8 – `/breach health`
+
+**Cosa**
+- `HealthReport` (record): `overall()` (DB giù o modulo `FAILED` → `FAILED`; `DEGRADED`/`STARTING` → `DEGRADED`; `DISABLED` ignorato) e `lines()` (prima riga = stato complessivo, poi database, moduli o "Moduli: nessuno", code).
+- `HealthService(ModuleRegistry, DataSource, PlatformExecutors)`: `check()` raccoglie DB (`isValid(2)`, errore SQL = DB giù), moduli e code sul thread DB.
+- `BreachCommand(HealthService, Executor main) implements BasicCommand`: `/breach health` con permesso `breach.admin.health`, risposta sul main via `whenCompleteAsync`, colore per stato; tab-completion dei sottocomandi (`suggestions`).
+
+**File**
+- Creati: `core-platform/src/main/java/org/breachsmp/core/platform/health/{HealthReport,HealthService}.java`, `core-platform/src/main/java/org/breachsmp/core/platform/command/BreachCommand.java`, test `…/health/HealthReportTest.java` (6), `…/health/HealthServiceTest.java` (3), `…/command/BreachCommandTest.java` (1).
+- Modificati: `map.md` (§6 `platform/health/` e `platform/command/BreachCommand.java` → ✅), `log.md`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-platform:test` con soli test → `:core-platform:compileTestJava FAILED`, `14 errors`, `cannot find symbol class HealthReport / HealthService`, `BUILD FAILED in 1s`.
+- GREEN: `.\gradlew.bat :core-platform:test` → `BUILD SUCCESSFUL in 4s`. Per classe: `HealthReportTest` 6/6, `HealthServiceTest` 3/3, `BreachCommandTest` 1/1.
+- Suite completa `core-platform`: 54 test, 3 skipped (`MigratorIT`, Docker assente), 0 failure, 0 error. Le API Paper (`BasicCommand`, `CommandSourceStack`, Adventure) compilano senza modifiche rispetto al brief.
+
+**Decisioni**
+- Nessuna decisione nuova; nessuna deviazione dal brief.
+
+**Aperto**
+- `BreachCommand.execute` e `health()` (rami con `CommandSender` reale, permessi, `whenCompleteAsync`) non hanno test: richiedono un server Paper; coperti solo da `suggestions` e dallo smoke test del Task 9.
 
 ---
 

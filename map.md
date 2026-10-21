@@ -208,7 +208,7 @@ Implementa `ServiceRegistry` con `ConcurrentHashMap<Class<?>, Object>`. Test: `S
 
 Test: `DefaultModuleContextTest`, `ModuleRegistryTest`.
 
-### `platform/health/` ⏳ Task 8
+### `platform/health/` ✅ Task 8
 
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
@@ -217,7 +217,7 @@ Test: `DefaultModuleContextTest`, `ModuleRegistryTest`.
 
 Test: `HealthReportTest`, `HealthServiceTest` (DataSource finti via `java.lang.reflect.Proxy`).
 
-### `platform/command/BreachCommand.java` ⏳ Task 8
+### `platform/command/BreachCommand.java` ✅ Task 8
 `BasicCommand` di Paper per `/breach` (registrato in `ARKPlugin.start()` con `registerCommand`).
 
 | Metodo | A cosa serve |
