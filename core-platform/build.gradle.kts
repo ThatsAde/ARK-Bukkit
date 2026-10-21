@@ -28,8 +28,27 @@ dependencies {
 }
 
 tasks {
+    processResources {
+        val props = mapOf("version" to project.version.toString())
+        inputs.properties(props)
+        filesMatching("plugin.yml") {
+            expand(props)
+        }
+    }
+
     shadowJar {
         archiveClassifier = ""
+        // Flyway e il driver MariaDB si trovano via ServiceLoader: i file META-INF/services vanno uniti e rilocati
+        mergeServiceFiles()
+        // Paper fornisce già slf4j (D-11)
+        dependencies {
+            exclude(dependency("org.slf4j:.*"))
+        }
+        val libsPackage = "org.breachsmp.core.libs"
+        relocate("com.zaxxer.hikari", "$libsPackage.hikari")
+        relocate("org.flywaydb", "$libsPackage.flyway")
+        relocate("org.mariadb.jdbc", "$libsPackage.mariadb")
+        relocate("com.fasterxml.jackson", "$libsPackage.jackson")
     }
 
     build {

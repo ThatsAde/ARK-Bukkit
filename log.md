@@ -8,9 +8,37 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0 – Task 8 completati.
-- **Prossimo passo:** Task 9 del piano M0 (`ARKPlugin` bootstrap, `plugin.yml`, smoke test).
-- **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0 – Task 9 (parte automatizzabile) completati; smoke test manuale (step 8–9) in attesa.
+- **Prossimo passo:** smoke test manuale a cura dell'utente (Task 9 step 8–9, vedi voce Task 9), poi Task 10 del piano M0.
+- **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale. **La Definition of Done di M0 NON è ancora verificata end-to-end.**
+
+---
+
+## 2026-10-21 – Task 9 – bootstrap `ARKPlugin`, `plugin.yml`, jar shadow
+
+**Cosa**
+- `ARKPlugin` (bootstrap fail-closed: config → pool → migrazioni → executor → moduli → `/breach`), `plugin.yml` con `version` espansa da Gradle, blocco `tasks` di `core-platform/build.gradle.kts` (`processResources`, `shadowJar` con `mergeServiceFiles()`, esclusione slf4j, relocation, `runServer`).
+- Aggiunta relocation non prevista dal brief: `com.fasterxml.jackson` -> `org.breachsmp.core.libs.jackson` (transitiva di Flyway; nel jar comparivano 79 classi `com/fasterxml/jackson/annotation/*` non rilocate).
+- Verificato `onDisable` dopo avvio fallito: se `start()` fallisce dopo `modules.load`, `modules` è già assegnato e `disableAll()` viene chiamato; i campi `executors`/`dataSource` sono null-guardati e azzerati, quindi lo spegnimento è sicuro in ogni punto di fallimento. Nessuna modifica necessaria.
+
+**File**
+- Creati: `core-platform/src/main/java/org/breachsmp/core/platform/ARKPlugin.java`, `core-platform/src/main/resources/plugin.yml`, `core-platform/src/test/java/org/breachsmp/core/platform/PluginYmlTest.java`.
+- Modificati: `core-platform/build.gradle.kts`, `map.md` (ARKPlugin, plugin.yml, build.gradle.kts -> ✅), `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test --tests "...PluginYmlTest"` -> `cannot find symbol class ARKPlugin`, `BUILD FAILED`.
+- GREEN: stesso comando -> `BUILD SUCCESSFUL`. `.\gradlew.bat build --rerun-tasks` -> `BUILD SUCCESSFUL`; 66 test in totale, 3 skipped (`MigratorIT`, Docker assente), 0 failure.
+- Step 7 (jar `core-platform-1.0-SNAPSHOT.jar`): dopo la relocation jackson nessuna classe fuori da `org/breachsmp/`; le uniche 3 righe segnalate sono `META-INF/versions/{11,15}/org/breachsmp/core/libs/mariadb/...` (multi-release, già rilocate). `plugin.yml` contiene `version: '1.0-SNAPSHOT'`; presenti `config.yml` e `db/migration/V001__platform_create_player.sql`. I file `META-INF/services` (`java.sql.Driver`, flyway `...Plugin`, mariadb `AuthenticationPluginFactory/Codec/CredentialPlugin/TlsSocketPlugin`) sono uniti e puntano a nomi rilocati `org.breachsmp.core.libs.*`.
+- Step 8 – in attesa: smoke test manuale a cura dell'utente. Comando: `.\gradlew.bat :core-platform:runServer` (EULA in `core-platform/run/eula.txt`; atteso errore "File della password DB mancante" e disabilitazione del plugin).
+- Step 9 – in attesa: smoke test manuale a cura dell'utente con MariaDB (creare DB/utente come da brief, password in `core-platform/run/plugins/BreachCore/secrets/db-password`), poi `.\gradlew.bat :core-platform:runServer`; atteso `migrazioni applicate ora: 1`, `breach health` -> HEALTHY, al secondo avvio `migrazioni applicate ora: 0`.
+
+**Decisioni**
+- Nessun ID `D-xx` nuovo. Relocation jackson aggiunta (vedi sopra).
+
+**Aperto**
+- La Definition of Done di M0 NON è verificata end-to-end: step 8–9 non eseguibili qui (niente server interattivo, MariaDB, Docker).
+- `api-version: '26.2'` non verificato: se Paper lo rifiuta, correggere secondo il messaggio e registrare una nuova decisione.
+- Non verificato a runtime che Flyway/MariaDB rilocati funzionino (ServiceLoader, scansione `db/migration`): solo ispezione statica del jar.
 
 ---
 

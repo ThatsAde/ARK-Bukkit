@@ -45,7 +45,7 @@ module-*        (futuri: solo core-api [+ core-domain])
 | `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()` | Regole comuni a tutti i moduli |
 | `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
 | `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
-| `core-platform/build.gradle.kts` | ✅ (Task 9 aggiunge relocation e processResources) | dipendenze runtime, Paper compileOnly (+ testImplementation), shadow, `runServer` (relocation e `processResources` per la versione in `plugin.yml` arrivano col Task 9) | Nuove librerie, nuovi `module-*`, relocation |
+| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), `runServer` | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
@@ -138,7 +138,7 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 
 ## 6. `core-platform` – bootstrap e infrastruttura
 
-### `platform/ARKPlugin.java` ⏳ Task 9
+### `platform/ARKPlugin.java` ✅
 `JavaPlugin` principale (`main` in `plugin.yml`). Vedi §3 per il flusso.
 
 | Metodo | A cosa serve | Quando toccarlo |
@@ -235,7 +235,7 @@ Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.he
 
 | File | Stato | Contenuto | Quando toccarlo |
 | --- | --- | --- | --- |
-| `src/main/resources/plugin.yml` | ⏳ Task 9 | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
+| `src/main/resources/plugin.yml` | ✅ (`api-version` non verificato su Paper reale) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
 | `src/main/resources/config.yml` | ✅ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
 | `src/main/resources/db/migration/V001__platform_create_player.sql` | ✅ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
 

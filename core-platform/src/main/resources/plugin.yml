@@ -1,0 +1,12 @@
+name: BreachCore
+version: '${version}'
+main: org.breachsmp.core.platform.ARKPlugin
+api-version: '26.2'
+description: Core plugin di BreachSMP
+permissions:
+  breach.command:
+    description: Accesso al comando /breach
+    default: op
+  breach.admin.health:
+    description: Mostra lo stato di moduli, database e code (/breach health)
+    default: op
