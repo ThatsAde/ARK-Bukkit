@@ -8,9 +8,32 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2 e Task 3 completati.
-- **Prossimo passo:** Task 4 del piano M0 (`core-platform`: registry dei servizi, executor, contesto del modulo).
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3 e Task 4 completati.
+- **Prossimo passo:** Task 5 del piano M0 (`core-platform`: `ModuleRegistry`, `ModuleStartupException`, `ModuleCatalog`).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 4 – registry dei servizi, executor, contesto del modulo
+
+**Cosa**
+- `SimpleServiceRegistry`: registry in memoria su `ConcurrentHashMap`; registrare due volte lo stesso tipo → `IllegalStateException`; `require` su tipo mancante → `IllegalStateException` con il nome del tipo e un suggerimento (modulo abilitato e dichiarato in `dependencies()`).
+- `PlatformExecutors`: implementa `CoreExecutors` e `AutoCloseable`. `main` è fornito dall'esterno; `db` (N thread), `compute` (N thread) e `market` (1 thread, single-writer) sono pool a coda illimitata con thread daemon nominati `breach-db-N`, `breach-compute-N`, `breach-market-1`. Rifiuta 0 thread. `queueDepths()` restituisce la lunghezza delle code in ordine db, compute, market. `close()` ferma market → compute → db, con attesa massima di 10 s per pool.
+- `DefaultModuleContext` (record): implementa `ModuleContext`; `sync(task)` = `CompletableFuture.supplyAsync(task, executors.main())`. Argomenti nulli rifiutati nel costruttore compatto.
+
+**File**
+- Creati: `core-platform/src/main/java/org/breachsmp/core/platform/service/SimpleServiceRegistry.java`, `core-platform/src/main/java/org/breachsmp/core/platform/concurrent/PlatformExecutors.java`, `core-platform/src/main/java/org/breachsmp/core/platform/module/DefaultModuleContext.java`, più i tre test: `SimpleServiceRegistryTest` (4 test), `PlatformExecutorsTest` (6 test), `DefaultModuleContextTest` (1 test).
+- Modificati: `map.md` (§6: `PlatformExecutors`, `SimpleServiceRegistry`, `DefaultModuleContext` → ✅; heading `platform/module/` ⏳ Task 5), `log.md`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-platform:test` con solo i test scritti → `:core-platform:compileTestJava FAILED`, `16 errors`, `cannot find symbol ... class PlatformExecutors / SimpleServiceRegistry / DefaultModuleContext`, `BUILD FAILED in 4s`.
+- GREEN: `.\gradlew.bat :core-platform:test` → `BUILD SUCCESSFUL in 9s`; report: `PlatformExecutorsTest` tests=6 failures=0 errors=0; `DefaultModuleContextTest` tests=1 failures=0 errors=0; `SimpleServiceRegistryTest` tests=4 failures=0 errors=0 (totale 11).
+
+**Decisioni**
+- Nessuna decisione nuova: implementazione come da piano (Task 4) e spec §3.
+
+**Aperto**
+- Nessuno per questo task. `ModuleRegistry`, `ModuleStartupException` e `ModuleCatalog` arrivano nel Task 5.
 
 ---
 
