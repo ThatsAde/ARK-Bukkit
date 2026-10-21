@@ -121,7 +121,7 @@ Gli executor della spec §3: `Executor main()`, `db()`, `compute()`, `market()`.
 
 ## 5. `core-domain` – logica pura
 
-### `domain/module/DependencyResolver.java` ⏳ Task 3
+### `domain/module/DependencyResolver.java` ✅ Task 3
 Ordinamento topologico dei moduli (spec §3 "ordine di avvio segue `dependsOn`").
 
 | Metodo | A cosa serve | Note |
@@ -131,7 +131,7 @@ Ordinamento topologico dei moduli (spec §3 "ordine di avvio segue `dependsOn`")
 
 Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 
-### `domain/module/DependencyException.java` ⏳ Task 3
+### `domain/module/DependencyException.java` ✅ Task 3
 `RuntimeException` per grafo dei moduli non valido. Fa fallire l'avvio (D-08).
 
 ---

@@ -8,9 +8,33 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1 e Task 2 completati.
-- **Prossimo passo:** Task 3 del piano M0 (`core-domain`: `DependencyResolver`).
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2 e Task 3 completati.
+- **Prossimo passo:** Task 4 del piano M0 (`core-platform`: registry dei servizi, executor, contesto del modulo).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 3 – ordinamento dei moduli per dipendenze
+
+**Cosa**
+- `DependencyResolver.order(graph)`: ordinamento topologico (Kahn) dei moduli; a parità di livello ordine alfabetico, quindi avvio deterministico. Funzione pura, nessuna dipendenza da Bukkit o I/O.
+- Dipendenza mancante → `DependencyException` con messaggio esplicito; ciclo (anche auto-dipendenza) → `DependencyException` con il percorso del ciclo (`a -> b -> a`), ricostruito da `findCycle`.
+- Dipendenze duplicate contate una volta sola (`TreeSet`).
+- `DependencyException extends RuntimeException`: fa fallire l'avvio (fail-closed, D-08).
+
+**File**
+- Creati: `core-domain/src/main/java/org/breachsmp/core/domain/module/DependencyResolver.java`, `core-domain/src/main/java/org/breachsmp/core/domain/module/DependencyException.java`, `core-domain/src/test/java/org/breachsmp/core/domain/module/DependencyResolverTest.java` (8 test).
+- Modificati: `map.md` (§5: le due voci ⏳ → ✅), `log.md`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-domain:test` con solo il test scritto → `:core-domain:compileTestJava FAILED`, `11 errors`, `cannot find symbol ... variable DependencyResolver` / `class DependencyException`, `BUILD FAILED in 3s`.
+- GREEN: `.\gradlew.bat :core-domain:test` → `BUILD SUCCESSFUL in 2s`; report `DependencyResolverTest`: `tests="8" skipped="0" failures="0" errors="0"`.
+
+**Decisioni**
+- Nessuna decisione nuova: algoritmo e messaggi di errore come da piano (Task 3) e spec §3.
+
+**Aperto**
+- Nessuno per questo task. `ModuleRegistry` (che chiama `order`) arriva nel Task 5.
 
 ---
 
