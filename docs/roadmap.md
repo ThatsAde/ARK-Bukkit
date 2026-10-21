@@ -6,7 +6,7 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 
 | Milestone | Stato | Piano | Dipende da | Definition of Done (spec) |
 | --- | --- | --- | --- | --- |
-| **M0** Scheletro | 📝 pianificata | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
+| **M0** Scheletro | 🟡 codice completo, smoke test manuale in attesa | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
 | **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | ⏳ | – | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
 | **M2** Claim, Tool Cupboard, tier, protezione eventi | ⏳ | – | M0 | Nessun danno esterno sui claim; indice spaziale entro budget |
 | **M3** Oggetti, Breach Core, gate, blast, shield | ⏳ | – | M1, M2 | Test di dupe superato; raid completo su base di prova |
@@ -17,6 +17,8 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 | **M8** Arene e Colosseum (1v1, 2v2) | ⏳ | – | M1 | Torneo di 8 con premi e ripristino inventari |
 | **M9** Pipeline di stagione | ⏳ | – | tutti | Reset di prova su staging con snapshot e rollback |
 | **M10** Store, ProductPolicy, Tebex | ⏳ | – | M4 | ArchUnit verde; acquisto di prova consegnato una sola volta |
+
+M0 è in attesa dello smoke test manuale dell'utente con server Paper reale e MariaDB (Task 9, step 8–9): avvio con `api-version: '26.2'`, migrazioni, `/breach health`, riavvio. Non ancora verificato; vedi `log.md`.
 
 ---
 

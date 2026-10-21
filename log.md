@@ -8,9 +8,45 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0 – Task 9 (parte automatizzabile) completati; smoke test manuale (step 8–9) in attesa.
-- **Prossimo passo:** smoke test manuale a cura dell'utente (Task 9 step 8–9, vedi voce Task 9), poi Task 10 del piano M0.
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Codice completo (Task 0 – Task 10); build e test unitari verdi. Smoke test manuale (Task 9 step 8–9) in attesa.
+- **Prossimo passo:** smoke test manuale a cura dell'utente (Task 9 step 8–9, comandi nella voce "M0 – chiusura"); poi scrivere il piano di M1 (Ledger).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale. **La Definition of Done di M0 NON è ancora verificata end-to-end.**
+
+---
+
+## 2026-10-21 – M0 – chiusura (codice completo, smoke test manuale in attesa)
+
+**Cosa**
+- Chiusura del codice di M0 (Task 10): roadmap aggiornata a "🟡 codice completo, smoke test manuale in attesa"; mappa controllata (nessuna voce ⏳/🔁 residua su M0, rimane solo la legenda).
+- M0 **non** è dichiarata completata: la Definition of Done dipende dallo smoke test manuale dell'utente.
+
+**File**
+- Modificati: `docs/roadmap.md`, `map.md` (nessuna modifica necessaria), `log.md`.
+
+**Verifica**
+- `.\gradlew.bat clean build` -> `BUILD SUCCESSFUL`.
+- Test (da `*/build/test-results/test/*.xml`): 66 test, 63 passati, 3 skipped (`MigratorIT`, Docker assente), 0 failure, 0 error. Il task `test` è stato ripreso dalla build cache (`FROM-CACHE`); i risultati sono quelli della esecuzione in cache con gli stessi input.
+- Avviso non bloccante dallo `shadowJar`: `DuplicatesStrategy` su `META-INF/services/org.mariadb.jdbc.plugin.*` è `EXCLUDE` (il messaggio consiglia `INCLUDE` o `WARN`). Da verificare nello smoke test che i servizi MariaDB siano caricati.
+
+**NON verificato** (richiede lo smoke test manuale dell'utente):
+- `MigratorIT` (richiede Docker).
+- Runtime delle librerie rilocate (Flyway/MariaDB: ServiceLoader, scansione `db/migration`).
+- `api-version: '26.2'` accettato da Paper.
+- Output di `/breach health`.
+
+**Smoke test da eseguire** (piano, Task 9 step 8–9):
+1. Senza DB: `.\gradlew.bat :core-platform:runServer` (EULA in `core-platform/run/eula.txt`). Atteso: `Avvio di BreachCore fallito ... File della password DB mancante`, plugin disabilitato. Poi `stop`.
+2. Con MariaDB: creare DB e utente (`CREATE DATABASE breach_game CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`, `CREATE USER 'bc_game'@'localhost' IDENTIFIED BY '<password>';`, `GRANT ALL PRIVILEGES ON breach_game.* TO 'bc_game'@'localhost';`), scrivere la password in `core-platform/run/plugins/BreachCore/secrets/db-password`, poi `.\gradlew.bat :core-platform:runServer`. Atteso: `Database pronto, migrazioni applicate ora: 1`, `BreachCore avviato. Moduli attivi: []`.
+3. In console: `breach health`. Atteso: `BreachCore: HEALTHY`, `Database: OK`, `Moduli: nessuno`, `Code: db=0 compute=0 market=0`.
+4. `stop`, poi di nuovo `runServer`: atteso `migrazioni applicate ora: 0`; `stop` senza eccezioni.
+- Se Paper rifiuta `api-version`, correggere `plugin.yml` e registrare una nuova decisione.
+
+**Decisioni**
+- Nessun ID `D-xx` nuovo.
+
+**Aperto**
+- Smoke test manuale di Task 9 step 8–9 (a cura dell'utente).
+- Dopo lo smoke test: chiudere M0 (roadmap "✅ completata") e scrivere il piano di M1 (Ledger).
 
 ---
 
