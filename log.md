@@ -8,9 +8,34 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3, Task 4, Task 5 e Task 6 completati.
-- **Prossimo passo:** Task 7 del piano M0 (`core-platform`: `platform/db/`, DataSourceFactory, Migrator, V001).
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3, Task 4, Task 5, Task 6 e Task 7 completati.
+- **Prossimo passo:** Task 8 del piano M0.
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 7 – pool DB e migrazioni Flyway
+
+**Cosa**
+- `DataSourceFactory.hikariConfig/create`: pool Hikari `breach-db`, driver MariaDB, pool size = min idle = `effectivePoolSize`, `maxLifetime` da config, timeout connessione e `initializationFailTimeout` 5 s (fail-closed), `REPEATABLE READ`, prepared statement server-side.
+- `Migrator(DataSource, ClassLoader).migrate()`: Flyway su `classpath:db/migration`, `cleanDisabled(true)`; se `info()` contiene stati `FUTURE_SUCCESS/FUTURE_FAILED` lancia `SchemaTooNewException`; ritorna il numero di migrazioni eseguite.
+- `V001__platform_create_player.sql`: tabella globale `player`.
+
+**File**
+- Creati: `core-platform/src/main/java/org/breachsmp/core/platform/db/{DataSourceFactory,SchemaTooNewException,Migrator}.java`, `core-platform/src/main/resources/db/migration/V001__platform_create_player.sql`, test `…/db/DataSourceFactoryTest.java` (2 test), `…/db/MigratorIT.java` (3 test).
+- Modificati: `map.md` (§6 `platform/db/` e §7 V001 → ✅), `log.md`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-platform:test` con soli test → `:core-platform:compileTestJava FAILED`, `5 errors` (cannot find symbol Migrator / DataSourceFactory / SchemaTooNewException), `BUILD FAILED in 3s`.
+- GREEN: `.\gradlew.bat :core-platform:test` → `BUILD SUCCESSFUL in 5s`. `DataSourceFactoryTest` 2/2 passati.
+- **Esito MigratorIT: SALTATO** (Docker non installato): XML `MigratorIT` tests=3 skipped=3 failures=0 errors=0. Le 3 verifiche di integrazione (migrazione su schema vuoto, seconda esecuzione = 0, rifiuto schema futuro) NON sono state eseguite contro un DB reale.
+- Totale suite: 44 test, 3 skipped (MigratorIT), 0 failure, 0 error.
+
+**Decisioni**
+- Nessuna decisione nuova; nessuna deviazione dal brief (Flyway 13.9.0, HikariCP 7.1.0, Testcontainers 1.21.4 compilano il codice del brief senza modifiche).
+
+**Aperto**
+- `MigratorIT` e la stringa `TRANSACTION_REPEATABLE_READ` accettata dal driver MariaDB reale vanno verificati su una macchina con Docker / MariaDB (al più tardi allo smoke test del Task 9).
 
 ---
 

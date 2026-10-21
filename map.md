@@ -170,7 +170,7 @@ Chiavi `config.yml` (default in `core-platform/src/main/resources/config.yml`):
 
 Test: `ConfigLoaderTest` (incluso: il `config.yml` spedito nel jar è valido).
 
-### `platform/db/` ⏳ Task 7
+### `platform/db/` ✅
 
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
@@ -180,7 +180,7 @@ Test: `ConfigLoaderTest` (incluso: il `config.yml` spedito nel jar è valido).
 
 Impostazioni Hikari: nome pool `breach-db`, driver `org.mariadb.jdbc.Driver`, `maximumPoolSize = minimumIdle = effectivePoolSize`, `maxLifetime` da config, `connectionTimeout` 5 s, `initializationFailTimeout` 5 s (fail-closed), `REPEATABLE READ`, `useServerPrepStmts`/`cachePrepStmts`.
 
-Test: `DataSourceFactoryTest` (unit), `MigratorIT` (Testcontainers, saltato senza Docker).
+Test: `DataSourceFactoryTest` (unit), `MigratorIT` (Testcontainers, saltato senza Docker: su questa macchina 3 test skipped).
 
 ### `platform/concurrent/PlatformExecutors.java` ✅
 Implementa `CoreExecutors` e `AutoCloseable`.
@@ -237,7 +237,7 @@ Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.he
 | --- | --- | --- | --- |
 | `src/main/resources/plugin.yml` | ⏳ Task 9 | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
 | `src/main/resources/config.yml` | ✅ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
-| `src/main/resources/db/migration/V001__platform_create_player.sql` | ⏳ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
+| `src/main/resources/db/migration/V001__platform_create_player.sql` | ✅ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
 
 Migrazioni applicate (aggiorna a ogni nuova migrazione):
 
