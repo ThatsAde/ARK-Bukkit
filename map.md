@@ -74,7 +74,7 @@ onDisable (inverso):  modules.disableAll() → executors.close() → dataSource.
 ### `api/ARKApi.java` ✅
 Interfaccia vuota, segnaposto per il punto d'accesso pubblico usato da plugin esterni. **Non usata in M0.** Toccarla quando un plugin esterno deve leggere servizi di BreachCore (probabile da M1: `ServiceRegistry services()`).
 
-### `api/module/ARKModule.java` 🔁 Task 2
+### `api/module/ARKModule.java` ✅ Task 2
 Contratto di ogni modulo di dominio (= `BreachModule` della spec, D-01).
 
 | Metodo | A cosa serve | Chi lo chiama | Quando toccarlo |
@@ -84,9 +84,9 @@ Contratto di ogni modulo di dominio (= `BreachModule` della spec, D-01).
 | `void onEnable()` | Avvia job e listener; dipendenze già abilitate | `ModuleRegistry.enableAll` | – |
 | `void onDisable()` | Drain e flush; ordine inverso | `ModuleRegistry.disableAll` | – |
 | `HealthStatus health()` | Stato per `/breach health`; **qualsiasi thread, niente Bukkit, niente I/O** | `ModuleRegistry.health` (dal thread DB) | – |
-| `default Collection<ModuleDependency> dependencies()` | Moduli da avviare prima; default nessuno | `ModuleRegistry.load` | Task 2 lo rende `default` |
+| `default Collection<ModuleDependency> dependencies()` | Moduli da avviare prima; default nessuno | `ModuleRegistry.load` | Reso `default` in Task 2 |
 
-### `api/module/ModuleContext.java` 🔁 Task 2 (da classe vuota a interfaccia)
+### `api/module/ModuleContext.java` ✅ Task 2 (da classe vuota a interfaccia)
 Ciò che la piattaforma dà a un modulo in `onLoad`. Implementazione: `platform/module/DefaultModuleContext`.
 
 | Metodo | A cosa serve |
@@ -102,10 +102,10 @@ Quando toccarla: quando un modulo ha bisogno di una nuova capacità di piattafor
 ### `api/module/HealthStatus.java` ✅
 Enum `STARTING, HEALTHY, DEGRADED, FAILED, DISABLED`. Usato da `ARKModule.health()`, `ModuleRegistry.health()`, `HealthReport.overall()`. Se aggiungi un valore: aggiorna `HealthReport.overall()` e il colore in `BreachCommand`.
 
-### `api/module/ModuleDependency.java` 🔁 Task 2
+### `api/module/ModuleDependency.java` ✅ Task 2
 Record `(String moduleId)`; il costruttore rifiuta id nullo/vuoto. `static ModuleDependency on(String)` per leggibilità: `List.of(ModuleDependency.on("economy"))`. Test: `ModuleDependencyTest`.
 
-### `api/service/ServiceRegistry.java` ⏳ Task 2
+### `api/service/ServiceRegistry.java` ✅ Task 2
 Registry tipizzato dei servizi tra moduli. Implementazione: `platform/service/SimpleServiceRegistry`.
 
 | Metodo | A cosa serve |
@@ -114,7 +114,7 @@ Registry tipizzato dei servizi tra moduli. Implementazione: `platform/service/Si
 | `<T> Optional<T> find(Class<T>)` | Servizio opzionale |
 | `<T> T require(Class<T>)` | Servizio obbligatorio; assente = `IllegalStateException` con messaggio esplicito |
 
-### `api/concurrent/CoreExecutors.java` ⏳ Task 2
+### `api/concurrent/CoreExecutors.java` ✅ Task 2
 Gli executor della spec §3: `Executor main()`, `db()`, `compute()`, `market()`. Implementazione: `platform/concurrent/PlatformExecutors`. Regola: I/O solo su `db()`, calcolo puro su `compute()`, matching azioni solo su `market()`, Bukkit API solo su `main()`.
 
 ---

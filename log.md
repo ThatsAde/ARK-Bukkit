@@ -8,9 +8,34 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0 e Task 1 completati.
-- **Prossimo passo:** Task 2 del piano M0.
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1 e Task 2 completati.
+- **Prossimo passo:** Task 3 del piano M0 (`core-domain`: `DependencyResolver`).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 2 – contratti di modulo, servizi, executor
+
+**Cosa**
+- `ARKModule`: `dependencies()` diventa `default` (lista vuota); Javadoc del ciclo di vita (ordine di dipendenza, fail-closed).
+- `ModuleDependency`: il costruttore compatto rifiuta id nullo o vuoto; aggiunto `static on(String)`.
+- `ModuleContext`: da classe vuota a interfaccia (`moduleId()`, `services()`, `executors()`, `logger()`, `sync(Supplier)`).
+- Nuove: `service/ServiceRegistry` (`register`, `find`, `require`) e `concurrent/CoreExecutors` (`main`, `db`, `compute`, `market`).
+- Nessun codice fuori da `core-api` usava questi tipi: nessun effetto sugli altri moduli.
+
+**File**
+- Modificati: `core-api/.../module/ARKModule.java`, `core-api/.../module/ModuleDependency.java`, `core-api/.../module/ModuleContext.java`, `map.md` (§4), `log.md`.
+- Creati: `core-api/.../service/ServiceRegistry.java`, `core-api/.../concurrent/CoreExecutors.java`, `core-api/src/test/java/org/breachsmp/core/api/module/ModuleDependencyTest.java`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-api:test` con solo il test scritto → `:core-api:compileTestJava FAILED`, `ModuleDependencyTest.java:22: error: cannot find symbol ... method on(String) location: class ModuleDependency`, `BUILD FAILED`.
+- GREEN: `.\gradlew.bat :core-api:test` → `BUILD SUCCESSFUL`; report `ModuleDependencyTest`: `tests="3" skipped="0" failures="0" errors="0"`.
+
+**Decisioni**
+- Nessuna decisione nuova: contratti implementati come da piano (Task 2) e spec §3.
+
+**Aperto**
+- Nessuno per questo task. Le implementazioni (`SimpleServiceRegistry`, `PlatformExecutors`, `DefaultModuleContext`) arrivano nei Task 4–5.
 
 ---
 
