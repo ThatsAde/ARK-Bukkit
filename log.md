@@ -8,9 +8,34 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3 e Task 4 completati.
-- **Prossimo passo:** Task 5 del piano M0 (`core-platform`: `ModuleRegistry`, `ModuleStartupException`, `ModuleCatalog`).
+- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Task 0, Task 1, Task 2, Task 3, Task 4 e Task 5 completati.
+- **Prossimo passo:** Task 6 del piano M0 (`core-platform`: `platform/config/`).
 - **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale di M0 (Task 9).
+
+---
+
+## 2026-10-21 – Task 5 – ciclo di vita dei moduli
+
+**Cosa**
+- `ModuleRegistry(Logger)`: `load(modules, isEnabled, contextFactory)` costruisce il grafo dei moduli abilitati, lo ordina con `DependencyResolver.order` e chiama `onLoad` in ordine; id duplicati o `load` chiamato due volte → `IllegalStateException`. Moduli disabilitati da config: non caricati, loggati, riportati `DISABLED`.
+- `enableAll()`: `onEnable` in ordine di caricamento, al primo errore si ferma con `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati; un errore viene loggato e non ferma gli altri.
+- `health()`: abilitati → `health()` (eccezione o `null` → `FAILED`), caricati ma non abilitati → `STARTING`, altri → `DISABLED`.
+- `ModuleStartupException extends RuntimeException`: messaggio `onLoad|onEnable del modulo '<id>' fallito: …`, causa originale preservata.
+- `ModuleCatalog.all()`: in M0 restituisce `List.of()`; è l'unico punto che elenca i moduli (I7).
+
+**File**
+- Creati: `core-platform/src/main/java/org/breachsmp/core/platform/module/ModuleRegistry.java`, `…/module/ModuleStartupException.java`, `…/module/ModuleCatalog.java`, test `core-platform/src/test/java/org/breachsmp/core/platform/module/ModuleRegistryTest.java` (13 test).
+- Modificati: `map.md` (§6: heading `platform/module/` ✅, `ModuleRegistry`, `ModuleStartupException`, `ModuleCatalog` → ✅), `log.md`.
+
+**Verifica** (TDD)
+- RED: `.\gradlew.bat :core-platform:test --tests "org.breachsmp.core.platform.module.ModuleRegistryTest"` con solo il test scritto → `:core-platform:compileTestJava` fallito, `4 errors`, `cannot find symbol ... class ModuleRegistry` / `class ModuleStartupException`, `BUILD FAILED in 2s`.
+- GREEN: `.\gradlew.bat :core-platform:test` → `BUILD SUCCESSFUL in 3s`; report: `ModuleRegistryTest` tests=13 failures=0 errors=0; `PlatformExecutorsTest` tests=6; `DefaultModuleContextTest` tests=1; `SimpleServiceRegistryTest` tests=4 (totale 24, tutti verdi).
+
+**Decisioni**
+- Nessuna decisione nuova: implementazione come da piano (Task 5) e spec §3 / D-08 (fail-closed).
+
+**Aperto**
+- `ModuleCatalog.all()` è vuoto finché non esistono i moduli di dominio (`module-*`); `ARKPlugin` (Task 9) lo userà.
 
 ---
 

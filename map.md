@@ -197,14 +197,14 @@ Test: `PlatformExecutorsTest`.
 ### `platform/service/SimpleServiceRegistry.java` ✅
 Implementa `ServiceRegistry` con `ConcurrentHashMap<Class<?>, Object>`. Test: `SimpleServiceRegistryTest`.
 
-### `platform/module/` ⏳ Task 5
+### `platform/module/` ✅
 
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
 | `DefaultModuleContext` (record) ✅ | Implementa `ModuleContext` | `sync(Supplier)` = `CompletableFuture.supplyAsync(task, executors.main())` |
-| `ModuleRegistry` (Task 5) | Ciclo di vita dei moduli | `load(Collection<? extends ARKModule>, Predicate<String> isEnabled, Function<String, ModuleContext>)`: id duplicati → `IllegalStateException`; ordina con `DependencyResolver`; `onLoad` in ordine. `enableAll()`: `onEnable` in ordine, errore → `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati, un errore non ferma gli altri. `List<String> order()`. `Map<String, HealthStatus> health()`: abilitati → `health()` (eccezione → `FAILED`), caricati non abilitati → `STARTING`, altri → `DISABLED` |
-| `ModuleStartupException` (Task 5) | Errore in `onLoad`/`onEnable`; il messaggio contiene l'id del modulo | – |
-| `ModuleCatalog` (Task 5) | **Unico posto** che elenca le implementazioni dei moduli (I7) | `static List<ARKModule> all()` → in M0 `List.of()` |
+| `ModuleRegistry` ✅ | Ciclo di vita dei moduli | `load(Collection<? extends ARKModule>, Predicate<String> isEnabled, Function<String, ModuleContext>)`: id duplicati → `IllegalStateException`; ordina con `DependencyResolver`; `onLoad` in ordine. `enableAll()`: `onEnable` in ordine, errore → `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati, un errore non ferma gli altri. `List<String> order()`. `Map<String, HealthStatus> health()`: abilitati → `health()` (eccezione → `FAILED`), caricati non abilitati → `STARTING`, altri → `DISABLED` |
+| `ModuleStartupException` ✅ | Errore in `onLoad`/`onEnable`; il messaggio contiene l'id del modulo | – |
+| `ModuleCatalog` ✅ | **Unico posto** che elenca le implementazioni dei moduli (I7) | `static List<ARKModule> all()` → in M0 `List.of()` |
 
 Test: `DefaultModuleContextTest`, `ModuleRegistryTest`.
 
