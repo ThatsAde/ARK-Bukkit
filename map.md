@@ -36,17 +36,21 @@ core-domain     (api(core-api), niente Bukkit, niente I/O)
    ▲
 core-platform   (core-api, core-domain, Hikari, Flyway, MariaDB driver; Paper compileOnly) → jar shadow
    ▲
-module-*        (futuri: solo core-api [+ core-domain])
+module-economy  (api core-api, implementation core-domain + Caffeine; I7 imposto da breach.module-conventions)
+   ▲
+core-platform   (implementation module-economy: unico che collega i moduli, ModuleCatalog)
 ```
 
 | File | Stato | Cosa contiene | Quando toccarlo |
 | --- | --- | --- | --- |
-| `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)` dei moduli | Aggiunta di un nuovo progetto Gradle |
+| `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)`: `core-domain`, `core-api`, `core-platform`, `module-economy` | Aggiunta di un nuovo progetto Gradle |
 | `gradle.properties` | ✅ | parallel, caching, `-Xmx2G` | Raramente |
 | `gradle/libs.versions.toml` | ✅ | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers, jqwik 1.10.1, Caffeine 3.3.0) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
 | `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()`; `BREACH_IT_JDBC_URL` come input dei task `Test` (D-13: niente esito "saltato" ripreso dalla cache); ogni task `Test` usa il build service `ItDatabaseLock` (`build-logic/src/main/kotlin/ItDatabaseLock.kt`, `maxParallelUsages = 1`, D-22): un solo task Test alla volta nella build | Regole comuni a tutti i moduli |
 | `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
-| `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
+| `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit + jqwik (test) | Mai aggiungere Paper o librerie I/O |
+| `build-logic/src/main/kotlin/breach.module-conventions.gradle.kts` | ✅ | Convention dei `module-*`: applica `breach.java-conventions` e **fallisce la configurazione** se `api`/`implementation`/`compileOnly`/`runtimeOnly` contengono un progetto diverso da `:core-api`/`:core-domain` (I7, D-21) | Mai allentarla; i test possono usare `testFixtures(project(":core-platform"))` |
+| `module-economy/build.gradle.kts` | ✅ | `breach.module-conventions`; `api(core-api)`, `implementation(core-domain)`, Caffeine; test: testFixtures di `core-platform`, JUnit | Nuove librerie del modulo (da rilocare nello shadow di `core-platform`) |
 | `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), plugin `java-test-fixtures` (`testFixturesApi(hikaricp)`, Flyway, Testcontainers, JUnit), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
@@ -370,6 +374,25 @@ Migrazioni applicate (aggiorna a ogni nuova migrazione):
 | --- | --- | --- | --- |
 | V001 | `V001__platform_create_player.sql` | platform | `player(uuid, name, first_seen, last_seen, flags)` |
 | V002 | `V002__platform_season.sql` | platform | `season(id, name, started_at, ended_at)`, `current_season(singleton=1, season_id)` con stagione 1, indice `ix_player_name` |
+| V004 | `V004__economy_ledger.sql` | economy | `account(id, season_id, owner_type, owner_ref, balance, version, frozen_at)` con `uq_owner` e CHECK saldo ≥ 0 tranne SYSTEM; `ledger_tx(id, season_id, idem_key UNIQUE, kind, actor, created_at, meta JSON)`; `ledger_entry(tx_id, seq, account_id, delta, balance_after)` con FK |
 | V003 | `V003__platform_audit_tunable_job.sql` | platform | `audit_log(id, at, actor, action, subject, detail JSON)`, `tunable(tkey, value, updated_at, updated_by)`, `scheduled_job(job_id, next_run_at, locked_by, locked_until, last_run_at, last_status, last_error)` |
 
 Test di risorse: `PluginYmlTest` (Task 9) verifica che `main` punti a `ARKPlugin` e che la versione sia stata espansa.
+
+---
+
+## 8. `module-economy` – ledger, conti, comandi economici (M1b)
+Percorsi abbreviati: `economy/` = `module-economy/src/main/java/org/breachsmp/core/economy/`. Dipende solo da `core-api`, `core-domain`, Caffeine (I7). Niente Paper (D-15).
+
+### `economy/ledger/` ✅ (M1b Task 4)
+
+| Classe | Ruolo | Metodi |
+| --- | --- | --- |
+| `AccountDao` | Tabella `account` | `AccountDao(DataSource)`; `ensure(season, refs)` / `ensure(season, ref)`: crea i conti mancanti in **autocommit** (`INSERT … ON DUPLICATE KEY UPDATE id = id` + `SELECT id`), id in cache (D-20); `read(season, ref)` → `Optional<Snapshot(id, balance, version, frozen)>`; `lockForUpdate(c, sortedIds)`: un solo `SELECT … WHERE id IN (?, …) ORDER BY id FOR UPDATE`; `updateBalances(c, locked, balances)`: **unico** `UPDATE account SET balance` del codice (I3), `version + 1`; `setFrozen(id, frozen, at)` → `true` se è cambiato |
+| `LedgerDao` (statico) | `ledger_tx`, `ledger_entry` (solo INSERT/SELECT) | `insertTx(c, season, request, createdAt)` → id, oppure vuoto su chiave duplicata (errore 1062); `insertEntries(c, txId, locked, legs, balances)` (`seq` 1..n); `findByIdemKey`, `findById` → `StoredTx`; `history(c, accountId, limit, offset)` dal più recente |
+| `LockedAccount` (record) | `LedgerRules.AccountState` + `version` | – |
+| `StoredTx` (record) | Transazione salvata con le entry in ordine di `seq` | `toResult(replayed)` |
+| `HistoryRow` (record) | `txId, createdAt, kind, delta, balanceAfter` | – |
+
+Test: `AccountDaoIT` (creazione idempotente anche con 16 thread in parallelo, ordine del lock, freeze).
+

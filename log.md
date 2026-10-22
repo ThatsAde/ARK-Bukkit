@@ -10,8 +10,32 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 4.
+- **Prossimo passo:** M1b Task 5.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 4 – `module-economy`, regola I7, schema V004, DAO dei conti
+
+**Cosa**
+- Convention plugin `breach.module-conventions` (I7, D-21); nuovo progetto `module-economy` incluso in `settings.gradle.kts`; `core-platform` dipende da `module-economy`.
+- Migrazione `V004__economy_ledger.sql`: `account` (con `frozen_at`, CHECK saldo ≥ 0 tranne SYSTEM), `ledger_tx` (`idem_key` UNIQUE), `ledger_entry` (FK).
+- `AccountDao`, `LedgerDao`, record `LockedAccount`, `StoredTx`, `HistoryRow`.
+
+**File**
+- `build-logic/src/main/kotlin/breach.module-conventions.gradle.kts`, `settings.gradle.kts`, `module-economy/build.gradle.kts`, `core-platform/build.gradle.kts`, `core-platform/src/main/resources/db/migration/V004__economy_ledger.sql`, `module-economy/src/main/java/org/breachsmp/core/economy/ledger/*`; test `AccountDaoIT`; `map.md` (§2, §7, nuova §8), `log.md`.
+
+**Verifica**
+- `.\gradlew.bat build` con il nuovo progetto → `BUILD SUCCESSFUL` (nessun ciclo tra progetti con `testFixtures(project(":core-platform"))`).
+- **Prova negativa I7:** con `implementation(project(":core-platform"))` in `module-economy` → configurazione fallita: `I7: :module-economy non può dipendere da :core-platform in 'implementation' (ammessi solo :core-api e :core-domain)`; riga tolta.
+- RED: `.\gradlew.bat :module-economy:test` → `cannot find symbol AccountDao`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 140 test, 0 skipped; `AccountDaoIT` 4/4, `MigratorIT` 3/3 (4 migrazioni).
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 

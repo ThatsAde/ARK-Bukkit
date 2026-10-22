@@ -13,6 +13,7 @@ version = "1.0-SNAPSHOT"
 dependencies {
     implementation(project(":core-api"))
     implementation(project(":core-domain"))
+    implementation(project(":module-economy"))
 
     implementation(libs.hikaricp)
     implementation(libs.flyway.core)

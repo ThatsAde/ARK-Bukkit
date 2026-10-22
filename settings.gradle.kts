@@ -26,5 +26,6 @@ rootProject.name = "ARK-Bukkit"
 include(
     "core-domain",
     "core-api",
-    "core-platform"
+    "core-platform",
+    "module-economy"
 )
