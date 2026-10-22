@@ -10,8 +10,36 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 9 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 10 (chiusura), poi M1b.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 9 – cablaggio dei servizi e smoke test
+
+**Cosa**
+- `ARKPlugin.start()` riscritto: servizi di piattaforma registrati nel `ServiceRegistry` prima dei moduli, `DefaultModuleContext` con il `DataSource`, `TunableRegistry.reload()` dopo `onLoad`, `CommandHub.close()` dopo `enableAll()`, `PlayerListener` registrato, `/breach` con `health`, `tunable` e i sottocomandi dei moduli, comandi dei moduli con `ModuleCommandAdapter`, scheduler dei job e ricarica dei tunable ogni 30 s sul timer.
+- `plugin.yml`: permesso `breach.admin.tunable` (`op`).
+
+**File**
+- `core-platform/src/main/java/org/breachsmp/core/platform/ARKPlugin.java`, `core-platform/src/main/resources/plugin.yml`, test `PluginYmlTest`; `map.md` (§1, §3, §7), `log.md`.
+
+**Verifica**
+- RED: `PluginYmlTest.adminPermissionsDefaultToOp` → `NullPointerException` (permesso assente).
+- GREEN: `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`, `verifyShadowJar` passato; 116 test, 0 skipped.
+- **Smoke test** (`:core-platform:runServer`, Paper 26.2, MariaDB 11.4.13, comandi da stdin):
+  1. `Database pronto, migrazioni applicate ora: 2` (V002, V003), `BreachCore avviato. Moduli attivi: []`. ✅
+  2. `breach health` → `BreachCore: HEALTHY`, `Database: OK`, `Moduli: nessuno`, `Ultimo job: nessuno`, `Code: db=0 compute=0 market=0`. ✅
+  3. `breach tunable` → `Nessun tunable registrato.` ✅
+  4. `breach boh` → `Uso: /breach <health|tunable>`. ✅
+  5. Riavvio: `migrazioni applicate ora: 0`, HEALTHY; `stop` → `breach-db - Shutdown completed`, nessuna eccezione. ✅
+- **Non verificato:** il login di un giocatore reale (serve un client): coperto solo da `LoginGateTest`.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- All'avvio il driver logga WARN `1193 Unknown system variable 'WSREP_ON'` e `1243 Unknown prepared statement handler (4294967295)`: vengono dalla sonda di Flyway per Galera (c'erano già nello smoke test di M0, 6 righe). Sono innocui; da silenziare solo se danno fastidio nei log.
 
 ---
 

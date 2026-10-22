@@ -10,3 +10,6 @@ permissions:
   breach.admin.health:
     description: Mostra lo stato di moduli, database e code (/breach health)
     default: op
+  breach.admin.tunable:
+    description: Legge e modifica i tunable (/breach tunable)
+    default: op

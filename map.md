@@ -23,6 +23,7 @@
 | Cambiare cosa mostra `/breach health` | `platform/health/HealthReport.lines()` / `overall()`; righe di un modulo: `ARKModule.healthDetails()` | Raccolta dati: `HealthService.check()` |
 | Cambiare dimensione/nomi dei thread | `platform/concurrent/PlatformExecutors` | `MARKET` resta sempre a 1 thread (single-writer) |
 | Cambiare l'ordine di avvio/arresto | `platform/ARKPlugin.start()` / `onDisable()` | Arresto = inverso dell'avvio, DB per ultimo |
+| Usare un servizio di piattaforma da un modulo | `context.services().require(X.class)` in `onLoad`, con X tra `SeasonService`, `PlayerService`, `AuditService`, `TunableService`, `JobScheduler`, `PlayerHooks`, `CommandRegistry`, `PlayerLock` | Registrati da `ARKPlugin.start()` prima dei moduli |
 
 ---
 
@@ -54,18 +55,24 @@ module-*        (futuri: solo core-api [+ core-domain])
 
 ```
 onEnable → start():
-  1 saveDefaultConfig()                      copia config.yml se manca
-  2 ConfigLoader.load(...)                   valida tutto, fail-closed (ConfigException)
-  3 ConfigLoader.readPassword(...)           da secrets/db-password (D-09)
-  4 DataSourceFactory.create(...)            pool Hikari, fallisce se il DB non risponde
-  5 Migrator.migrate()                       Flyway; rifiuta schema più nuovo (SchemaTooNewException)
-  6 new PlatformExecutors(main, db, compute) MAIN / DB / COMPUTE / MARKET
-  7 ModuleRegistry.load(ModuleCatalog.all(), config::moduleEnabled, ctxFactory)
-  8 ModuleRegistry.enableAll()
-  9 registerCommand("breach", ..., new BreachCommand(new HealthService(...), main))
-  errore in 1–9 → log SEVERE + disablePlugin(this) → onDisable()
+  1 saveDefaultConfig() + ConfigLoader.load(...)   valida tutto, fail-closed (ConfigException)
+  2 ConfigLoader.readPassword(...)                 da secrets/db-password (D-09)
+  3 DataSourceFactory.create(...)                  pool Hikari, fallisce se il DB non risponde
+  4 Migrator.migrate()                             Flyway; rifiuta schema più nuovo (SchemaTooNewException)
+  5 new PlatformExecutors(main, db, compute)       MAIN / DB / COMPUTE / MARKET + timer
+  6 servizi di piattaforma nel ServiceRegistry:    CurrentSeason.load, JdbcPlayerService, JdbcAuditService,
+                                                   TunableRegistry, JdbcJobScheduler, PlayerHookRegistry,
+                                                   CommandHub, SerialPlayerLock
+  7 ModuleRegistry.load(ModuleCatalog.all(), …)    onLoad dei moduli (registrano servizi, tunable, comandi, hook, job)
+  8 TunableRegistry.reload()                       valori dal DB (bloccante, fail-closed)
+  9 ModuleRegistry.enableAll(); CommandHub.close()
+ 10 registerEvents(PlayerListener)                 login fail-closed, hook di uscita
+ 11 registerCommand("breach", BreachCommand)       health + tunable + sottocomandi dei moduli
+    registerCommand(<label>, ModuleCommandAdapter) per ogni comando dei moduli
+ 12 JdbcJobScheduler.start(timer); timer → TunableRegistry.reloadQuietly ogni 30 s
+  errore in 1–12 → log SEVERE + disablePlugin(this) → onDisable()
 
-onDisable (inverso):  modules.disableAll() → executors.close() → dataSource.close()
+onDisable (inverso):  modules.disableAll() → executors.close() (timer, poi drain) → dataSource.close()
 ```
 
 ---
@@ -322,7 +329,7 @@ Test: `BreachCommandTest`, `CommandDeliveryTest`, `CommandHubTest`, `HealthSubco
 
 | File | Stato | Contenuto | Quando toccarlo |
 | --- | --- | --- | --- |
-| `src/main/resources/plugin.yml` | ✅ (`api-version: '26.2'` accettato da Paper 26.2, smoke test 2026-10-22) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
+| `src/main/resources/plugin.yml` | ✅ (`api-version: '26.2'` accettato da Paper 26.2, smoke test 2026-10-22) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi `breach.command`, `breach.admin.health`, `breach.admin.tunable` (tutti `op`) | Nuovi permessi/sottocomandi |
 | `src/main/resources/config.yml` | ✅ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
 | `src/main/resources/db/migration/V001__platform_create_player.sql` | ✅ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
 

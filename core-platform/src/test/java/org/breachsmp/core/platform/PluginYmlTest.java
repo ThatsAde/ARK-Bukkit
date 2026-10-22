@@ -37,6 +37,7 @@ class PluginYmlTest {
             Map<String, Map<String, Object>> permissions = (Map<String, Map<String, Object>>) yml.get("permissions");
             assertEquals("op", permissions.get("breach.command").get("default"));
             assertEquals("op", permissions.get("breach.admin.health").get("default"));
+            assertEquals("op", permissions.get("breach.admin.tunable").get("default"));
         }
     }
 }
