@@ -413,6 +413,8 @@ SQLException 1213/1205/1020 → fino a 3 retry con jitter (`deadlockRetries()` l
 | `balance(ref)` / `balanceNow(ref)` | Dalla cache se presente, altrimenti dal DB (aggiorna la cache); conto assente = 0 |
 | `subscribe(listener)`, `deadlockRetries()` | – |
 
+**`LedgerConcurrencyIT`** (DoD M1): 20 giocatori, 1000 transazioni casuali (70% pay, 15% take, 15% give) + 100 doppi invii con la stessa chiave, tutte in parallelo sul pool DB; verifica una riga per chiave riuscita, somma dei saldi 0, nessun giocatore negativo, SINK ≥ 0, saldo = somma delle entry, ogni transazione a somma 0. Logga riuscite / insufficienti / retry.
+
 **`BalanceCache`** – Caffeine per `AccountRef` (`expireAfterAccess` 30 min, max 10.000, D-29): `get`, `offer(ref, version, balance)` (vince la versione più alta), `evict`.
 
 Test: `JdbcLedgerServiceIT` (11: movimenti ed entry, saldo insufficiente senza tracce, idempotenza e conflitto di tipo, freeze vs tipi admin, SINK non negativo, richiesta invalida senza DB, evento e cache, conto assente = 0, meta e actor, versioni della cache). Helper di test `module-economy/src/test/.../LedgerFixture` (DB migrato, executor, `MutableClock`, ledger reale; `give`, `tx`, `dbBalance`, `count`, `queryString`, `queryBytes`, `execute`).

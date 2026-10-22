@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 6 (1000 transazioni concorrenti).
+- **Prossimo passo:** M1b Task 7.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 6 – 1000 transazioni concorrenti (DoD M1)
+
+**Cosa**
+- `LedgerConcurrencyIT`: 20 giocatori con 1.000 monete; 1000 transazioni casuali (seed 42: 70% `PAY`, 15% `ADMIN_TAKE` verso SINK, 15% `ADMIN_GIVE` da FAUCET) più 100 doppi invii con la stessa chiave, mescolati e inviati tutti insieme al pool DB (8 thread, pool Hikari 10).
+
+**File**
+- `module-economy/src/test/java/org/breachsmp/core/economy/ledger/LedgerConcurrencyIT.java`; `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat :module-economy:test --tests "*LedgerConcurrencyIT"` (con `BREACH_IT_*`) → verde, skipped=0, 1,13 s. **Riuscite: 960 chiavi, saldo insufficiente: 41, retry deadlock: 0.** Invarianti verificate in SQL: una riga `ledger_tx` per chiave riuscita (+20 iniziali), somma dei saldi 0, nessun giocatore negativo, SINK ≥ 0, saldo = somma delle entry per ogni conto, ogni transazione a somma 0; doppi invii → stesso `txId`.
+- **Prova negativa:** lock un conto alla volta nell'ordine delle gambe (invece di un solo `SELECT … ORDER BY id FOR UPDATE`) → **retry deadlock: 6** (contro 0); i retry li assorbono e le invarianti tengono. Codice ripristinato (`git checkout`).
+
+**Decisioni**
+- **Rischio §18 (righe calde SYS_SINK/SYS_FAUCET):** con 8 thread e lock ordinati nessun deadlock e 1100 invii in ~1 s → **shard dei conti di sistema non necessari ora**; da rivalutare con il test di carico su staging.
+
+**Aperto**
+- Nessuno.
 
 ---
 
