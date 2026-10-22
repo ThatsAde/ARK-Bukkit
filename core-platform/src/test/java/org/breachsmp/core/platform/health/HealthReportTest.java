@@ -15,27 +15,27 @@ class HealthReportTest {
 
     @Test
     void healthyWhenDatabaseUpAndModulesHealthyOrDisabled() {
-        var report = new HealthReport(true, Map.of("economy", HealthStatus.HEALTHY, "arena", HealthStatus.DISABLED), QUEUES);
+        var report = new HealthReport(true, Map.of("economy", HealthStatus.HEALTHY, "arena", HealthStatus.DISABLED), List.of(), QUEUES);
         assertEquals(HealthStatus.HEALTHY, report.overall());
     }
 
     @Test
     void failedWhenDatabaseDown() {
-        assertEquals(HealthStatus.FAILED, new HealthReport(false, Map.of(), QUEUES).overall());
+        assertEquals(HealthStatus.FAILED, new HealthReport(false, Map.of(), List.of(), QUEUES).overall());
     }
 
     @Test
     void failedWhenAModuleFailed() {
-        var report = new HealthReport(true, Map.of("economy", HealthStatus.FAILED), QUEUES);
+        var report = new HealthReport(true, Map.of("economy", HealthStatus.FAILED), List.of(), QUEUES);
         assertEquals(HealthStatus.FAILED, report.overall());
     }
 
     @Test
     void degradedWhenAModuleIsDegradedOrStarting() {
         assertEquals(HealthStatus.DEGRADED,
-                new HealthReport(true, Map.of("economy", HealthStatus.DEGRADED), QUEUES).overall());
+                new HealthReport(true, Map.of("economy", HealthStatus.DEGRADED), List.of(), QUEUES).overall());
         assertEquals(HealthStatus.DEGRADED,
-                new HealthReport(true, Map.of("economy", HealthStatus.STARTING), QUEUES).overall());
+                new HealthReport(true, Map.of("economy", HealthStatus.STARTING), List.of(), QUEUES).overall());
     }
 
     @Test
@@ -43,12 +43,13 @@ class HealthReportTest {
         Map<String, HealthStatus> modules = new LinkedHashMap<>();
         modules.put("economy", HealthStatus.HEALTHY);
         modules.put("arena", HealthStatus.DISABLED);
-        var report = new HealthReport(true, modules, QUEUES);
+        var report = new HealthReport(true, modules, List.of("Massa monetaria: 0 monete"), QUEUES);
         assertEquals(List.of(
                 "BreachCore: HEALTHY",
                 "Database: OK",
                 "Modulo economy: HEALTHY",
                 "Modulo arena: DISABLED",
+                "Massa monetaria: 0 monete",
                 "Code: db=0 compute=1 market=0"), report.lines());
     }
 
@@ -58,7 +59,7 @@ class HealthReportTest {
                 "BreachCore: FAILED",
                 "Database: NON RAGGIUNGIBILE",
                 "Moduli: nessuno",
-                "Code: db=0 compute=1 market=0"), new HealthReport(false, Map.of(), QUEUES).lines());
+                "Code: db=0 compute=1 market=0"), new HealthReport(false, Map.of(), List.of(), QUEUES).lines());
     }
 
     private static Map<String, Integer> queues() {

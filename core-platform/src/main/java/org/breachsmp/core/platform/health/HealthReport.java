@@ -10,10 +10,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /** Fotografia dello stato del plugin per {@code /breach health}. Le mappe mantengono l'ordine ricevuto. */
-public record HealthReport(boolean databaseUp, Map<String, HealthStatus> modules, Map<String, Integer> queueDepths) {
+public record HealthReport(boolean databaseUp, Map<String, HealthStatus> modules, List<String> details,
+                           Map<String, Integer> queueDepths) {
 
     public HealthReport {
         modules = Collections.unmodifiableMap(new LinkedHashMap<>(modules));
+        details = List.copyOf(details);
         queueDepths = Collections.unmodifiableMap(new LinkedHashMap<>(queueDepths));
     }
 
@@ -28,7 +30,7 @@ public record HealthReport(boolean databaseUp, Map<String, HealthStatus> modules
         return HealthStatus.HEALTHY;
     }
 
-    /** Righe da mostrare in chat/console; la prima è lo stato complessivo. */
+    /** Righe da mostrare in chat/console: stato complessivo, database, moduli, dettagli (moduli e piattaforma), code. */
     public List<String> lines() {
         List<String> lines = new ArrayList<>();
         lines.add("BreachCore: " + overall());
@@ -38,6 +40,7 @@ public record HealthReport(boolean databaseUp, Map<String, HealthStatus> modules
         } else {
             modules.forEach((id, status) -> lines.add("Modulo " + id + ": " + status));
         }
+        lines.addAll(details);
         lines.add("Code: " + queueDepths.entrySet().stream()
                 .map(entry -> entry.getKey() + "=" + entry.getValue())
                 .collect(Collectors.joining(" ")));

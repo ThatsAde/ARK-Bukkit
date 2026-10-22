@@ -39,6 +39,7 @@ class HealthServiceTest {
         HealthReport report = service(dataSource(true)).check().get(5, SECONDS);
         assertTrue(report.databaseUp());
         assertEquals(Map.of(), report.modules());
+        assertEquals(List.of(), report.details());
         assertEquals(List.of("db", "compute", "market"), List.copyOf(report.queueDepths().keySet()));
     }
 
@@ -60,7 +61,7 @@ class HealthServiceTest {
         modules.load(List.of(), id -> false, id -> {
             throw new AssertionError("nessun modulo da caricare");
         });
-        return new HealthService(modules, dataSource, executors);
+        return new HealthService(modules, dataSource, executors, List::of);
     }
 
     private static DataSource dataSource(boolean valid) {

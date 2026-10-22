@@ -6,6 +6,7 @@ import org.breachsmp.core.api.module.ModuleContext;
 import org.breachsmp.core.api.module.ModuleDependency;
 import org.breachsmp.core.domain.module.DependencyResolver;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -122,6 +123,20 @@ public final class ModuleRegistry {
             result.put(module.id(), status);
         }
         return result;
+    }
+
+    /** Righe extra dei moduli abilitati, in ordine di avvio; un modulo che fallisce dà una riga d'errore. Thread DB. */
+    public List<String> details() {
+        List<String> lines = new ArrayList<>();
+        for (ARKModule module : enabled) {
+            try {
+                lines.addAll(module.healthDetails());
+            } catch (RuntimeException e) {
+                logger.log(Level.WARNING, "healthDetails() del modulo '" + module.id() + "' ha lanciato un'eccezione", e);
+                lines.add("Modulo " + module.id() + ": dettagli non disponibili (" + e.getMessage() + ")");
+            }
+        }
+        return lines;
     }
 
     private HealthStatus safeHealth(ARKModule module) {

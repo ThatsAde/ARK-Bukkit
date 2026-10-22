@@ -17,9 +17,10 @@
 | Esporre un servizio a altri moduli | interfaccia in `core-api`, registrazione in `onLoad` con `context.services().register(...)` | Chi lo usa: `context.services().require(...)` in `onLoad`/`onEnable` |
 | Aggiungere una tabella / colonna | **nuova** migrazione `core-platform/src/main/resources/db/migration/V0NN__<modulo>_<descrizione>.sql` | Mai modificare un file già applicato. Numerazione globale unica (D-04) |
 | Aggiungere una chiave di config | `config.yml` (default) + `ConfigLoader.parse` + record in `platform/config/` + test in `ConfigLoaderTest` | Se rompe la compatibilità: alza `ConfigLoader.CURRENT_VERSION` |
-| Aggiungere un sottocomando `/breach x` | `platform/command/BreachCommand` (`execute` + `SUBCOMMANDS`) + permesso in `plugin.yml` | I/O sempre fuori dal main, risposta con `whenCompleteAsync(..., main)` |
+| Aggiungere un sottocomando `/breach x` | nel modulo: classe che implementa `AdminSubcommand`, registrata con `context.services().require(CommandRegistry.class).registerAdmin(...)` in `onLoad`; permesso in `plugin.yml` | `execute` sul main senza bloccare; l'I/O passa da future sul pool DB. Sottocomandi di piattaforma: `HealthSubcommand`, `TunableSubcommand` in `ARKPlugin` |
+| Aggiungere un comando giocatore (`/pay`) | nel modulo: `ModuleCommand` + `CommandRegistry.register(...)`; permesso in `plugin.yml` | La piattaforma lo registra in Paper con `ModuleCommandAdapter` |
 | Aggiungere una libreria esterna | `gradle/libs.versions.toml` + `core-platform/build.gradle.kts` + `relocate(...)` nello `shadowJar` | Verifica il jar (Task 9 del piano M0) |
-| Cambiare cosa mostra `/breach health` | `platform/health/HealthReport.lines()` / `overall()` | Raccolta dati: `HealthService.check()` |
+| Cambiare cosa mostra `/breach health` | `platform/health/HealthReport.lines()` / `overall()`; righe di un modulo: `ARKModule.healthDetails()` | Raccolta dati: `HealthService.check()` |
 | Cambiare dimensione/nomi dei thread | `platform/concurrent/PlatformExecutors` | `MARKET` resta sempre a 1 thread (single-writer) |
 | Cambiare l'ordine di avvio/arresto | `platform/ARKPlugin.start()` / `onDisable()` | Arresto = inverso dell'avvio, DB per ultimo |
 
@@ -84,7 +85,7 @@ Contratto di ogni modulo di dominio (= `BreachModule` della spec, D-01).
 | `void onEnable()` | Avvia job e listener; dipendenze già abilitate | `ModuleRegistry.enableAll` | – |
 | `void onDisable()` | Drain e flush; ordine inverso. **Mai** `sync()`/`executors().main()` qui (lo scheduler Bukkit rifiuta task durante lo spegnimento) | `ModuleRegistry.disableAll` | – |
 | `HealthStatus health()` | Stato per `/breach health`; **qualsiasi thread, niente Bukkit, niente I/O** | `ModuleRegistry.health` (dal thread DB) | – |
-| `default List<String> healthDetails()` | Righe extra per `/breach health` (es. massa monetaria); **thread DB, query brevi ammesse** | `ModuleRegistry.details` ⏳ Task 8 | M1a |
+| `default List<String> healthDetails()` | Righe extra per `/breach health` (es. massa monetaria); **thread DB, query brevi ammesse** | `ModuleRegistry.details` | M1a |
 | `default Collection<ModuleDependency> dependencies()` | Moduli da avviare prima; default nessuno | `ModuleRegistry.load` | Reso `default` in Task 2 |
 
 ### `api/module/ModuleContext.java` ✅ Task 2 (da classe vuota a interfaccia)
@@ -133,7 +134,7 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ✅ |
 | `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ✅ |
 | `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation` | Tipi neutri per i comandi: righe con tono, avvisi ad altri giocatori, mittente (`senderId` null = console), permessi extra | – |
-| `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ⏳ Task 8 |
+| `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ✅ |
 | `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ✅ |
 
 ### `api/concurrent/CoreExecutors.java` ✅ Task 2
@@ -289,27 +290,31 @@ Implementa `ServiceRegistry` con `ConcurrentHashMap<Class<?>, Object>`. Test: `S
 
 Test: `DefaultModuleContextTest`, `ModuleRegistryTest`.
 
-### `platform/health/` ✅ Task 8
+### `platform/health/` ✅
 
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
-| `HealthReport` (record) | Fotografia: `databaseUp`, `modules` (ordinati), `queueDepths` | `HealthStatus overall()`: DB giù o modulo `FAILED` → `FAILED`; `DEGRADED`/`STARTING` → `DEGRADED`; altrimenti `HEALTHY` (`DISABLED` ignorato). `List<String> lines()`: righe per la chat |
-| `HealthService` | Raccoglie il report sul thread DB | `CompletableFuture<HealthReport> check()`; `boolean pingDatabase()` (package-private, `isValid(2)`) |
+| `HealthReport` (record) | Fotografia: `databaseUp`, `modules` (ordinati), `details` (righe dei moduli e della piattaforma), `queueDepths` | `HealthStatus overall()`: DB giù o modulo `FAILED` → `FAILED`; `DEGRADED`/`STARTING` → `DEGRADED`; altrimenti `HEALTHY` (`DISABLED` ignorato). `List<String> lines()`: stato, database, moduli, **dettagli**, code |
+| `HealthService` | Raccoglie il report sul thread DB | `HealthService(ModuleRegistry, DataSource, PlatformExecutors, Supplier<List<String>> platformDetails)`; `check()`: `details` = `modules.details()` + `platformDetails` (es. `JdbcJobScheduler::healthLines`); `pingDatabase()` (package-private) |
+
+`ModuleRegistry.details()`: `healthDetails()` dei moduli abilitati in ordine di avvio; un'eccezione diventa `Modulo <id>: dettagli non disponibili (<msg>)`.
 
 Test: `HealthReportTest`, `HealthServiceTest` (DataSource finti via `java.lang.reflect.Proxy`).
 
-### `platform/command/BreachCommand.java` ✅ Task 8
-`BasicCommand` di Paper per `/breach` (registrato in `ARKPlugin.start()` con `registerCommand`).
+### `platform/command/` ✅ (riscritto in M1a Task 8, D-15)
+I moduli scrivono comandi con i tipi neutri di `api/command`; qui vengono adattati a Paper. Ogni risposta torna sul main con `whenCompleteAsync(..., main)` (I2).
 
-| Metodo | A cosa serve |
+| Classe | Ruolo |
 | --- | --- |
-| `execute(CommandSourceStack, String[])` | `health` → `health(sender)`; altrimenti messaggio d'uso |
-| `private health(CommandSender)` | Controlla `breach.admin.health`, chiama `HealthService.check()`, risponde sul main (`whenCompleteAsync(..., main)`) con colore per stato |
-| `suggest(...)` / `static List<String> suggestions(String[])` | Tab-completion dei sottocomandi |
-| `static String describe(Throwable)` | Testo d'errore per il sender: scarta il wrapper `CompletionException` (usa la causa), fallback al nome semplice della classe |
-| `permission()` | `breach.command` (accesso al comando) |
+| `BreachCommand` (`BasicCommand`) | `/breach <sottocomando>`: `BreachCommand(Collection<AdminSubcommand>, CommandDelivery, Server)`. Sottocomando sconosciuto o assente → WARNING con `usage(visibili)` (solo quelli permessi); senza permesso → ERROR; altrimenti `delivery.deliver` con gli argomenti senza il nome. `static suggestions(args, subs, has, online)`: primo argomento = nomi permessi per prefisso, poi delega al sottocomando. `PERMISSION = "breach.command"` |
+| `ModuleCommandAdapter` (`BasicCommand`) | Comando di primo livello di un modulo (`/pay`, `/balance`): `playerOnly` dalla console → ERROR; `permission()` del modulo; suggerimenti con i nomi online |
+| `CommandDelivery` | `deliver(sender, supplier)`: righe al mittente, `Notice` ai giocatori online (`server.getPlayer`), eccezione → log WARNING + `Errore: <describe>`. Statici: `describe(Throwable)` (scarta `CompletionException`), `granted(perms, has)`, `invocation(sender, args, extra)` (`senderId` null = console), `onlinePlayerNames(server)` |
+| `CommandHub` (implementa `CommandRegistry`) | Raccoglie i comandi dei moduli: label/alias `[a-z][a-z0-9_-]*` univoci; sottocomandi admin univoci e non riservati (`RESERVED = health, tunable`); dopo `close()` ogni registrazione → `IllegalStateException`. `commands()`, `adminSubcommands()` |
+| `ChatRenderer` | `ChatLine` → `Component`: INFO bianco, SUCCESS verde, WARNING giallo, ERROR rosso, MUTED grigio |
+| `HealthSubcommand` | `/breach health` (`breach.admin.health`); `static toResult(HealthReport)`: prima riga SUCCESS/WARNING/ERROR, le altre MUTED |
+| `TunableSubcommand` | `/breach tunable [list \| get <chiave> \| set <chiave> <valore>]` (`breach.admin.tunable`); `set` → `TunableRegistry.set` con actor = mittente; valore rifiutato → `Valore non accettato: …` |
 
-Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.health"`, `SUBCOMMANDS = List.of("health")`. Test: `BreachCommandTest` (`suggestions`, `describe`).
+Test: `BreachCommandTest`, `CommandDeliveryTest`, `CommandHubTest`, `HealthSubcommandTest`, `TunableSubcommandTest`.
 
 ---
 

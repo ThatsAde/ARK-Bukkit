@@ -51,6 +51,19 @@ class ModuleRegistryTest {
     }
 
     @Test
+    void detailsCollectsEnabledModulesAndSurvivesFailures() {
+        FakeModule economy = new FakeModule("economy", events);
+        economy.details = List.of("Massa monetaria: 0 monete");
+        FakeModule broken = new FakeModule("broken", events);
+        broken.failOnHealth = true;
+        FakeModule disabled = new FakeModule("arena", events);
+        disabled.details = List.of("non deve comparire");
+        load(id -> !id.equals("arena"), economy, broken, disabled);
+        registry.enableAll();
+        assertEquals(List.of("Modulo broken: dettagli non disponibili (boom)", "Massa monetaria: 0 monete"), registry.details());
+    }
+
+    @Test
     void disablesInReverseOrder() {
         load(id -> true, new FakeModule("items", events, "economy"), new FakeModule("economy", events));
         registry.enableAll();
@@ -168,6 +181,7 @@ class ModuleRegistryTest {
         boolean failOnEnable;
         boolean failOnDisable;
         boolean failOnHealth;
+        List<String> details = List.of();
         ModuleContext context;
 
         FakeModule(String id, List<String> events, String... dependsOn) {
@@ -203,6 +217,12 @@ class ModuleRegistryTest {
         public HealthStatus health() {
             if (failOnHealth) throw new IllegalStateException("boom");
             return HealthStatus.HEALTHY;
+        }
+
+        @Override
+        public List<String> healthDetails() {
+            if (failOnHealth) throw new IllegalStateException("boom");
+            return details;
         }
     }
 }

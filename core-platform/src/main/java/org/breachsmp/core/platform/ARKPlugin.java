@@ -3,6 +3,8 @@ package org.breachsmp.core.platform;
 import com.zaxxer.hikari.HikariDataSource;
 import org.breachsmp.core.api.service.ServiceRegistry;
 import org.breachsmp.core.platform.command.BreachCommand;
+import org.breachsmp.core.platform.command.CommandDelivery;
+import org.breachsmp.core.platform.command.HealthSubcommand;
 import org.breachsmp.core.platform.concurrent.PlatformExecutors;
 import org.breachsmp.core.platform.config.ConfigLoader;
 import org.breachsmp.core.platform.config.CoreConfig;
@@ -17,6 +19,7 @@ import org.breachsmp.core.platform.service.SimpleServiceRegistry;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.ServiceConfigurationError;
 import java.util.logging.Level;
 
@@ -78,8 +81,10 @@ public final class ARKPlugin extends JavaPlugin {
                 id -> new DefaultModuleContext(id, services, executors, getLogger(), dataSource));
         modules.enableAll();
 
-        HealthService health = new HealthService(modules, dataSource, executors);
-        registerCommand("breach", "Amministrazione di BreachCore", new BreachCommand(health, executors.main()));
+        HealthService health = new HealthService(modules, dataSource, executors, List::of);
+        CommandDelivery delivery = new CommandDelivery(executors.main(), getServer(), getLogger());
+        registerCommand("breach", "Amministrazione di BreachCore",
+                new BreachCommand(List.of(new HealthSubcommand(health)), delivery, getServer()));
         getLogger().info("BreachCore avviato. Moduli attivi: " + modules.order());
     }
 }

@@ -10,8 +10,30 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 8 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 9 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 8 – comandi dei moduli e `/breach` estendibile
+
+**Cosa**
+- `BreachCommand` riscritto come dispatcher di `AdminSubcommand` (uso e suggerimenti filtrati per permesso); nuovi `ModuleCommandAdapter`, `CommandDelivery` (consegna sul main, avvisi ai giocatori online, `describe` spostato qui), `CommandHub` (`CommandRegistry`), `ChatRenderer`, `HealthSubcommand`, `TunableSubcommand` (`/breach tunable list|get|set`).
+- `HealthReport` ha le righe `details`; `HealthService` riceve le righe di piattaforma; `ModuleRegistry.details()` raccoglie `healthDetails()` dei moduli abilitati.
+- `ARKPlugin` adattato in modo minimo (cablaggio completo nel Task 9).
+
+**File**
+- `core-platform/.../command/{BreachCommand,ModuleCommandAdapter,CommandDelivery,CommandHub,ChatRenderer,HealthSubcommand,TunableSubcommand}.java`, `.../health/{HealthReport,HealthService}.java`, `.../module/ModuleRegistry.java`, `ARKPlugin.java`; test `BreachCommandTest` (riscritto), `CommandDeliveryTest`, `CommandHubTest`, `HealthSubcommandTest`, `TunableSubcommandTest`, `HealthReportTest`, `HealthServiceTest`, `ModuleRegistryTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test` → errori di compilazione (`cannot find symbol CommandHub`, `TunableSubcommand`; firma di `BreachCommand.suggestions`).
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 116 test, 0 skipped.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- `BreachCommand.execute`, `ModuleCommandAdapter` e `CommandDelivery.deliver` usano tipi Bukkit e non hanno test unitari: verifica nello smoke test del Task 9.
 
 ---
 
