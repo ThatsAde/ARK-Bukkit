@@ -193,6 +193,8 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 
 Test: `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest`, `SchedulesTest`.
 
+**Test di proprietà (jqwik, DoD M1)** – `core-domain/src/test/.../economy/LedgerProperties` + helper `InMemoryLedger` (stesse regole del ledger JDBC: `validate` → ordine per id → `balancesAfter`): 300 sequenze casuali fino a 200 operazioni (give, pay con tassa, take) → somma dei saldi sempre 0, nessun saldo negativo tranne FAUCET, una transazione rifiutata non cambia nulla; tassa = ceiling esatto; `Money.parse` legge ciò che un importo semplice dice.
+
 ---
 
 ## 6. `core-platform` – bootstrap e infrastruttura

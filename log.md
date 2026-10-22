@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 3.
+- **Prossimo passo:** M1b Task 4.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 3 – test di proprietà (jqwik)
+
+**Cosa**
+- `core-domain`: dipendenza di test `jqwik` 1.10.1; helper `InMemoryLedger` (stesse regole pure del ledger JDBC); `LedgerProperties` con 3 proprietà: conservazione del denaro e solo FAUCET in negativo (300 sequenze), tassa = ceiling esatto, `Money.parse` coerente.
+
+**File**
+- `core-domain/build.gradle.kts`, `core-domain/src/test/java/org/breachsmp/core/domain/economy/{InMemoryLedger,LedgerProperties}.java`; `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat :core-domain:test` → `BUILD SUCCESSFUL`; `LedgerProperties` 3/3, 0 failure. Totale build: 136 test, 0 skipped.
+- **Prova negativa:** con il controllo `after < 0` di `LedgerRules.balancesAfter` disattivato, `moneyIsNeitherCreatedNorDestroyedAndOnlyFaucetGoesNegative` fallisce con controesempio ristretto `giocatore:00000000-0000-0001-0000-000000000001 = -1`; codice ripristinato (`git checkout`), di nuovo verde.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 
