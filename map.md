@@ -42,7 +42,7 @@ module-*        (futuri: solo core-api [+ core-domain])
 | `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)` dei moduli | Aggiunta di un nuovo progetto Gradle |
 | `gradle.properties` | ✅ | parallel, caching, `-Xmx2G` | Raramente |
 | `gradle/libs.versions.toml` | ✅ | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
-| `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()` | Regole comuni a tutti i moduli |
+| `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()`; `BREACH_IT_JDBC_URL` come input dei task `Test` (D-13: niente esito "saltato" ripreso dalla cache) | Regole comuni a tutti i moduli |
 | `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
 | `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
 | `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
@@ -180,7 +180,16 @@ Test: `ConfigLoaderTest` (incluso: chiavi duplicate rifiutate; il `config.yml` s
 
 Impostazioni Hikari: nome pool `breach-db`, driver `org.mariadb.jdbc.Driver`, `maximumPoolSize = minimumIdle = effectivePoolSize`, `maxLifetime` da config, `connectionTimeout` 5 s, `initializationFailTimeout` 5 s (fail-closed), `REPEATABLE READ`, `useServerPrepStmts`/`cachePrepStmts`.
 
-Test: `DataSourceFactoryTest` (unit), `MigratorIT` (Testcontainers, saltato senza Docker: su questa macchina 3 test skipped).
+Test: `DataSourceFactoryTest` (unit), `MigratorIT` (integrazione, DB da `TestDatabase`), `TestDatabaseTest`.
+
+**`TestDatabase`** (solo sorgenti di test, `platform/db/`, D-13): punto unico da cui ogni `*IT` ottiene MariaDB.
+
+| Metodo | A cosa serve |
+| --- | --- |
+| `static HikariDataSource open()` | DB esterno se `BREACH_IT_JDBC_URL` (+ `BREACH_IT_DB_USER`, `BREACH_IT_DB_PASSWORD`) è impostata; altrimenti container `mariadb:11.4` condiviso (Testcontainers) se c'è Docker; altrimenti `assumeTrue` → test saltato. Schema esterno non `*_it` → `IllegalStateException` |
+| `static boolean isDisposableSchema(String jdbcUrl)` | `true` se lo schema dell'URL finisce con `_it` (i test fanno Flyway `clean`) |
+
+Quando toccarlo: nuovi IT (anche di `module-*`: se servirà fuori da `core-platform`, spostarlo in un `testFixtures`). Chi scrive un IT: `dataSource = TestDatabase.open()` in `@BeforeEach`, `close()` null-guardato in `@AfterEach`.
 
 ### `platform/concurrent/PlatformExecutors.java` ✅
 Implementa `CoreExecutors` e `AutoCloseable`.
@@ -236,7 +245,7 @@ Costanti: `PERMISSION = "breach.command"`, `PERMISSION_HEALTH = "breach.admin.he
 
 | File | Stato | Contenuto | Quando toccarlo |
 | --- | --- | --- | --- |
-| `src/main/resources/plugin.yml` | ✅ (`api-version` non verificato su Paper reale) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
+| `src/main/resources/plugin.yml` | ✅ (`api-version: '26.2'` accettato da Paper 26.2, smoke test 2026-10-22) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi | Nuovi permessi/sottocomandi |
 | `src/main/resources/config.yml` | ✅ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
 | `src/main/resources/db/migration/V001__platform_create_player.sql` | ✅ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
 

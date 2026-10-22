@@ -1,14 +1,10 @@
 package org.breachsmp.core.platform.db;
 
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.MariaDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -19,29 +15,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Testcontainers(disabledWithoutDocker = true)
 class MigratorIT {
-
-    @Container
-    static final MariaDBContainer<?> MARIADB = new MariaDBContainer<>("mariadb:11.4");
 
     private HikariDataSource dataSource;
     private Migrator migrator;
 
     @BeforeEach
     void setUp() {
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(MARIADB.getJdbcUrl());
-        config.setUsername(MARIADB.getUsername());
-        config.setPassword(MARIADB.getPassword());
-        dataSource = new HikariDataSource(config);
+        dataSource = TestDatabase.open();
         Flyway.configure().dataSource(dataSource).cleanDisabled(false).load().clean();
         migrator = new Migrator(dataSource, getClass().getClassLoader());
     }
 
     @AfterEach
     void tearDown() {
-        dataSource.close();
+        if (dataSource != null) { // null se il test è stato saltato (nessun DB)
+            dataSource.close();
+        }
     }
 
     @Test

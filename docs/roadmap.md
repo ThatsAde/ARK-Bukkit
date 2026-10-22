@@ -6,8 +6,8 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 
 | Milestone | Stato | Piano | Dipende da | Definition of Done (spec) |
 | --- | --- | --- | --- | --- |
-| **M0** Scheletro | 🟡 codice completo, smoke test manuale in attesa | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
-| **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | ⏳ | – | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
+| **M0** Scheletro | ✅ completata (2026-10-22) | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
+| **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | 📝 design pronto (`specs/2026-10-21-m1-ledger-design.md`), piano da scrivere | – | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
 | **M2** Claim, Tool Cupboard, tier, protezione eventi | ⏳ | – | M0 | Nessun danno esterno sui claim; indice spaziale entro budget |
 | **M3** Oggetti, Breach Core, gate, blast, shield | ⏳ | – | M1, M2 | Test di dupe superato; raid completo su base di prova |
 | **M4** Mailbox, Mercato, escrow | ⏳ | – | M1, M3 | Vendita di un Core con trasferimento atomico |
@@ -18,7 +18,7 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 | **M9** Pipeline di stagione | ⏳ | – | tutti | Reset di prova su staging con snapshot e rollback |
 | **M10** Store, ProductPolicy, Tebex | ⏳ | – | M4 | ArchUnit verde; acquisto di prova consegnato una sola volta |
 
-M0 è in attesa dello smoke test manuale dell'utente con server Paper reale e MariaDB (Task 9, step 8–9): avvio con `api-version: '26.2'`, migrazioni, `/breach health`, riavvio. Non ancora verificato; vedi `log.md`.
+M0 è chiusa: smoke test su Paper 26.2 + MariaDB 11.4.13 superato il 2026-10-22 (vedi `log.md`).
 
 ---
 
@@ -31,7 +31,7 @@ M0 è in attesa dello smoke test manuale dell'utente con server Paper reale e Ma
 - Nuove librerie: **jqwik** (property test), **Caffeine** (cache saldi), forse **ArchUnit** (I7 ora che esiste un `module-*`).
 - Lock `SELECT ... FOR UPDATE` in ordine di id, retry deadlock ×3 con jitter, idempotenza su `idem_key`.
 - Caricamento in `AsyncPlayerPreLoginEvent`, fail-closed se il DB non risponde.
-- Prima serve: **Docker** (il test "1000 tx concorrenti" è un test di integrazione).
+- Il test "1000 tx concorrenti" è un test di integrazione: gira sul MariaDB portatile tramite `TestDatabase` (D-13), senza Docker.
 - Rischio §18: righe calde `SYS_SINK`/`SYS_TAX_POOL` → valutare shard dopo il test di concorrenza.
 - Aggiungere `ModuleContext` per registrare listener e comandi dei moduli (oggi solo la piattaforma registra `/breach`).
 - Primo job pianificato → introdurre `scheduled_job` con lease (spec §9) e "ultimo job" in `/breach health`.

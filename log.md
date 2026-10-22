@@ -8,9 +8,43 @@
 
 ## Stato attuale
 
-- **Milestone in corso:** M0 – Scheletro (piano: `docs/superpowers/plans/2026-10-21-m0-scheletro.md`). Codice completo (Task 0 – Task 10); build e test unitari verdi. Smoke test manuale (Task 9 step 8–9) in attesa.
-- **Prossimo passo:** smoke test manuale a cura dell'utente (Task 9 step 8–9, comandi nella voce "M0 – chiusura"); poi scrivere il piano di M1 (Ledger).
-- **Bloccanti noti:** Docker non installato (test di integrazione saltati); serve un MariaDB raggiungibile per lo smoke test finale. **La Definition of Done di M0 NON è ancora verificata end-to-end.**
+- **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
+- **Prossimo passo:** piano di M1 (Ledger) a partire dal design `docs/superpowers/specs/2026-10-21-m1-ledger-design.md` (decisioni E1–E22).
+- **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M0 – smoke test end-to-end e IT su MariaDB reale (M0 chiusa)
+
+**Cosa**
+- Docker non installabile senza WSL (assente; richiede admin e riavvio) → installato **MariaDB 11.4.13 portatile** (zip ufficiale, SHA-256 verificato `d62986d4…`) in `%LOCALAPPDATA%\breach-mariadb`, fuori dal repo: porta 3307, bind `127.0.0.1`, schemi `breach_game` (utente `bc_game`, server di prova) e `breach_it` (utente `bc_it`, test di integrazione). Password casuali in `%LOCALAPPDATA%\breach-mariadb\secrets\`, mai stampate.
+- Nuovo helper di test `TestDatabase`: DB esterno da `BREACH_IT_JDBC_URL`/`BREACH_IT_DB_USER`/`BREACH_IT_DB_PASSWORD`, altrimenti Testcontainers se c'è Docker, altrimenti `assumeTrue` → test saltato. Rifiuta uno schema esterno che non finisce con `_it` (i test fanno Flyway `clean`).
+- `MigratorIT` usa `TestDatabase` invece di `@Testcontainers`/`@Container`; `tearDown` tollera il pool null (test saltato).
+- Convention plugin: `BREACH_IT_JDBC_URL` è un input dei task `Test`, così la build cache non riusa un esito "saltato" quando il DB c'è.
+- `CLAUDE.md` §5: comandi per avviare MariaDB ed eseguire gli IT.
+
+**File**
+- Creati: `core-platform/src/test/java/org/breachsmp/core/platform/db/TestDatabase.java`, `…/db/TestDatabaseTest.java`.
+- Modificati: `…/db/MigratorIT.java`, `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts`, `CLAUDE.md`, `docs/roadmap.md`, `map.md`, `log.md`.
+
+**Verifica**
+- TDD `TestDatabaseTest`: RED (`compileTestJava` fallito, 6 errori `cannot find symbol TestDatabase`), poi GREEN 2/2.
+- Senza variabili: `MigratorIT` tests=3 skipped=3 failures=0 (comportamento di prima).
+- Con variabili: `MigratorIT` tests=3 skipped=0 failures=0 errors=0 su MariaDB 11.4.13 → **prima esecuzione reale** di migrazione su schema vuoto, seconda esecuzione = 0, rifiuto schema futuro.
+- `.\gradlew.bat clean build` con variabili → `BUILD SUCCESSFUL`, `verifyShadowJar` passato; 70 test, 0 skipped, 0 failure, 0 error.
+- **Smoke test M0** (`:core-platform:runServer`, Paper 26.2, comandi inviati da stdin; script in scratchpad):
+  1. Senza `secrets/db-password`: `Avvio di BreachCore fallito, il plugin viene disabilitato: Configurazione non valida: - File della password DB mancante: plugins\BreachCore\secrets\db-password ...`, poi `Disabling BreachCore`; server avviato normalmente. ✅
+  2. Con MariaDB: `Database pronto, migrazioni applicate ora: 1`, `BreachCore avviato. Moduli attivi: []`; `breach health` → `BreachCore: HEALTHY` / `Database: OK` / `Moduli: nessuno` / `Code: db=0 compute=0 market=0`. ✅
+  3. Riavvio: `migrazioni applicate ora: 0`, HEALTHY; `stop` → `breach-db - Shutdown completed`, nessuna eccezione. ✅
+- Verificati quindi a runtime: `api-version: '26.2'` accettato da Paper (nessun avviso), Flyway e driver MariaDB rilocati (ServiceLoader + scansione `classpath:db/migration`), `TRANSACTION_REPEATABLE_READ` accettato dal driver reale. Nel DB: tabelle `flyway_schema_history`, `player`; V001 `success=1`.
+
+**Decisioni**
+- **D-13 DB per i test di integrazione** (integra D-05): gli `*IT` ottengono il DB da `TestDatabase` — esterno via `BREACH_IT_*` (schema obbligatoriamente `*_it`), altrimenti Testcontainers, altrimenti saltati. Su questa macchina: MariaDB 11.4.13 portatile su 127.0.0.1:3307.
+
+**Aperto**
+- Gli IT saltano in silenzio se le variabili mancano: per il codice DB controllare `skipped=0` nei report prima di dire "fatto".
+- Paper segnala di essere 2 release dietro la stabile (26.3): resta bloccato su 26.2 (D-02), da rivalutare a inizio stagione.
+- Differiti dalla review M0 (M2 drain/interrupt, M3 main in `onDisable`, M5 freeze catalogo, plain jar): entrano nel primo task di M1 (E12).
 
 ---
 

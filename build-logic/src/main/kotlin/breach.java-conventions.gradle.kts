@@ -17,4 +17,6 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // I test *IT usano il DB esterno se c'è (D-13): senza questo input Gradle riprenderebbe dalla cache l'esito "saltato"
+    inputs.property("itJdbcUrl", providers.environmentVariable("BREACH_IT_JDBC_URL").orElse(""))
 }
