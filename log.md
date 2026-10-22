@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 7 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 8 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 7 – PlayerLock, hook di login/uscita, listener Paper
+
+**Cosa**
+- `SerialPlayerLock` (coda FIFO per giocatore), `PlayerHookRegistry`, `LoginRejectedException`, `LoginGate` (upsert del profilo poi hook; ogni errore → espulsione con messaggio italiano), `PlayerListener` (`AsyncPlayerPreLoginEvent`, `PlayerQuitEvent`).
+
+**File**
+- `core-platform/.../lock/SerialPlayerLock.java`, `.../player/{PlayerHookRegistry,LoginRejectedException,LoginGate,PlayerListener}.java`; test `SerialPlayerLockTest`, `PlayerHookRegistryTest`, `LoginGateTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test --tests "*Lock*" --tests "*Login*" --tests "*Hook*"` → `cannot find symbol`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 108 test, 0 skipped; `SerialPlayerLockTest` 3, `PlayerHookRegistryTest` 2, `LoginGateTest` 3.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- `PlayerListener` non ha test unitari (tipi Bukkit): verificabile solo con un client reale.
 
 ---
 

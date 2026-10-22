@@ -127,14 +127,14 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `util/JsonText` | `write(Map<String,?>)` → JSON piatto (testo, interi, booleani, null; niente decimali) per `audit_log.detail` e `ledger_tx.meta` | – |
 | `player/PlayerProfile` (record) | `uuid, name, firstSeen, lastSeen` | – |
 | `player/PlayerService` | `findByName` (senza maiuscole, il più recente), `find(uuid)`; future sul thread DB | `platform/player/JdbcPlayerService` ✅ |
-| `player/PlayerHooks`, `LoginHook`, `QuitHook` | Hook dei moduli: login sul thread asincrono (I/O ok, eccezione = rifiuto), uscita sul main (niente I/O) | `platform/player/PlayerHookRegistry` ⏳ Task 7 |
+| `player/PlayerHooks`, `LoginHook`, `QuitHook` | Hook dei moduli: login sul thread asincrono (I/O ok, eccezione = rifiuto), uscita sul main (niente I/O) | `platform/player/PlayerHookRegistry` ✅ |
 | `season/SeasonService` | `currentSeasonId()` | `platform/season/CurrentSeason` ✅ |
 | `audit/AuditEntry`, `AuditService` | Audit append-only: `record` (async), `recordNow` (bloccante, solo da thread DB/login) | `platform/audit/JdbcAuditService` ✅ |
 | `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ✅ |
 | `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ✅ |
 | `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation` | Tipi neutri per i comandi: righe con tono, avvisi ad altri giocatori, mittente (`senderId` null = console), permessi extra | – |
 | `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ⏳ Task 8 |
-| `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ⏳ Task 7 |
+| `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ✅ |
 
 ### `api/concurrent/CoreExecutors.java` ✅ Task 2
 Gli executor della spec §3: `Executor main()`, `db()`, `compute()`, `market()`. Implementazione: `platform/concurrent/PlatformExecutors`. Regola: I/O solo su `db()`, calcolo puro su `compute()`, matching azioni solo su `market()`, Bukkit API solo su `main()`.
@@ -225,6 +225,18 @@ Quando toccarlo: nuovi IT. Chi scrive un IT: `dataSource = TestDatabase.migrated
 | `JdbcAuditService` (implementa `AuditService`) | Tabella `audit_log`, append-only | `JdbcAuditService(DataSource, Executor db, Clock)`; `record`/`recordNow`; `static void insert(Connection, AuditEntry, Instant)` per scrivere nella transazione del chiamante |
 
 Test: `CurrentSeasonIT`, `JdbcPlayerServiceIT`, `JdbcAuditServiceIT` (MariaDB reale via `TestDatabase.migrated()`).
+
+**Login e uscita (M1a Task 7)** – flusso: `PlayerListener.onPreLogin` (`AsyncPlayerPreLoginEvent`, priorità HIGH, saltato se già rifiutato) → `LoginGate.admit` → `JdbcPlayerService.upsert` → `PlayerHookRegistry.runLogin` (hook dei moduli in ordine). Qualsiasi errore → `disallow(KICK_OTHER, LoginGate.KICK_MESSAGE)` (fail-closed). Uscita: `PlayerQuitEvent` (MONITOR) → `PlayerHookRegistry.runQuit` (un hook che fallisce non ferma gli altri).
+
+| Classe | Ruolo |
+| --- | --- |
+| `PlayerHookRegistry` (implementa `PlayerHooks`) | `runLogin(uuid, name)`: primo errore → `LoginRejectedException` con l'id del modulo; `runQuit(uuid)`: errori loggati WARNING |
+| `LoginGate` | `LoginGate(BiConsumer<UUID,String> upsert, PlayerHookRegistry, Logger)`; `Optional<String> admit(uuid, name)` |
+| `LoginRejectedException` | Hook di login fallito |
+| `PlayerListener` | Listener Paper (unica classe Bukkit del flusso) |
+
+### `platform/lock/SerialPlayerLock.java` ✅ (M1a Task 7)
+Implementa `PlayerLock` con una coda FIFO per giocatore (`ConcurrentHashMap<UUID, future di coda>`): la mappa contiene solo le code attive. Un'azione che lancia rilascia comunque il lock. Test: `SerialPlayerLockTest`.
 
 ### `platform/tunable/` ✅ (M1a Task 5)
 
