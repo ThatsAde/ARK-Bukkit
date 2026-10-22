@@ -10,8 +10,29 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 5.
+- **Prossimo passo:** M1b Task 6 (1000 transazioni concorrenti).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 5 – ledger JDBC e cache dei saldi
+
+**Cosa**
+- `JdbcLedgerService` (algoritmo D-20: validazione, conti in autocommit, `INSERT ledger_tx` idempotente con replay, lock ordinato, regole pure, `UPDATE`+entry, `COMMIT`, poi cache ed evento; retry su 1213/1205/1020).
+- `BalanceCache` (Caffeine con versione, D-29). Helper di test `LedgerFixture`.
+
+**File**
+- `module-economy/src/main/java/org/breachsmp/core/economy/ledger/{JdbcLedgerService,BalanceCache}.java`; test `LedgerFixture`, `ledger/JdbcLedgerServiceIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :module-economy:test --tests "*JdbcLedgerServiceIT"` → `cannot find symbol` (`BalanceCache`, `JdbcLedgerService`).
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 151 test, 0 skipped; `JdbcLedgerServiceIT` 11/11 su MariaDB 11.4.13.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- La concorrenza reale si verifica nel Task 6.
 
 ---
 

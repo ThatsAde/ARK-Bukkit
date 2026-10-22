@@ -396,3 +396,24 @@ Percorsi abbreviati: `economy/` = `module-economy/src/main/java/org/breachsmp/co
 
 Test: `AccountDaoIT` (creazione idempotente anche con 16 thread in parallelo, ordine del lock, freeze).
 
+**`JdbcLedgerService`** (implementa `LedgerService`, M1b Task 5) – algoritmo D-20:
+1. `LedgerRules.validate` (niente DB se la richiesta è malformata);
+2. `AccountDao.ensure` in autocommit (conti creati in modo pigro, anche quelli di sistema, D-19);
+3. `BEGIN`; `LedgerDao.insertTx`: chiave già usata → rollback e replay (`StoredTx.toResult(true)`), `kind` diverso → `IdempotencyConflictException`;
+4. `AccountDao.lockForUpdate` (gambe ordinate per id del conto);
+5. `LedgerRules.balancesAfter` (freeze saltato per `TxKinds.bypassesFreeze`);
+6. `updateBalances` + `insertEntries`; `COMMIT`;
+7. dopo il commit: `BalanceCache.offer` con la nuova `version`, poi `LedgerTxCommitted` ai listener (errori loggati).
+SQLException 1213/1205/1020 → fino a 3 retry con jitter (`deadlockRetries()` le conta); altre → `LedgerException`. Le eccezioni di dominio escono dopo il rollback.
+
+| Metodo | A cosa serve |
+| --- | --- |
+| `JdbcLedgerService(DataSource, Executor db, SeasonService, AccountDao, BalanceCache, Clock, Logger)` | – |
+| `execute(request)` / `executeNow(request)` | Async sul pool DB / bloccante (login, job, `EconomyAdmin`) |
+| `balance(ref)` / `balanceNow(ref)` | Dalla cache se presente, altrimenti dal DB (aggiorna la cache); conto assente = 0 |
+| `subscribe(listener)`, `deadlockRetries()` | – |
+
+**`BalanceCache`** – Caffeine per `AccountRef` (`expireAfterAccess` 30 min, max 10.000, D-29): `get`, `offer(ref, version, balance)` (vince la versione più alta), `evict`.
+
+Test: `JdbcLedgerServiceIT` (11: movimenti ed entry, saldo insufficiente senza tracce, idempotenza e conflitto di tipo, freeze vs tipi admin, SINK non negativo, richiesta invalida senza DB, evento e cache, conto assente = 0, meta e actor, versioni della cache). Helper di test `module-economy/src/test/.../LedgerFixture` (DB migrato, executor, `MutableClock`, ledger reale; `give`, `tx`, `dbBalance`, `count`, `queryString`, `queryBytes`, `execute`).
+
