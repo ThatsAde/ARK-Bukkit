@@ -419,3 +419,12 @@ SQLException 1213/1205/1020 → fino a 3 retry con jitter (`deadlockRetries()` l
 
 Test: `JdbcLedgerServiceIT` (11: movimenti ed entry, saldo insufficiente senza tracce, idempotenza e conflitto di tipo, freeze vs tipi admin, SINK non negativo, richiesta invalida senza DB, evento e cache, conto assente = 0, meta e actor, versioni della cache). Helper di test `module-economy/src/test/.../LedgerFixture` (DB migrato, executor, `MutableClock`, ledger reale; `give`, `tx`, `dbBalance`, `count`, `queryString`, `queryBytes`, `execute`).
 
+### `economy/admin/` ✅ (M1b Task 7)
+
+| Classe | Ruolo | Metodi |
+| --- | --- | --- |
+| `EconomyAdmin` | Operazioni dello staff (spec §14, E20). Ogni operazione = **un** task sul pool DB con soli metodi bloccanti; audit dopo il commit, un audit fallito → SEVERE (D-18). Motivo obbligatorio (1–200 caratteri) e importo > 0 controllati in modo **sincrono** | `EconomyAdmin(DataSource, Executor db, SeasonService, AccountDao, JdbcLedgerService, AuditService, Clock, Logger)`; `give(actor, target, amount, reason)` = `ADMIN_GIVE` FAUCET → giocatore, audit `ECO_GIVE {amount, reason, tx}`; `take(...)` = `ADMIN_TAKE` giocatore → SINK (fallisce se non basta), audit `ECO_TAKE`; `rollback(actor, txId, reason)`: solo stagione corrente, non su un `ROLLBACK`, gambe invertite, chiave `IdemKeys.of("rollback:<id>")` (D-25), audit `TX_ROLLBACK` solo se non replay; `freeze`/`unfreeze(actor, target, reason)` → `true` se cambiato, audit `ACCOUNT_FREEZE`/`ACCOUNT_UNFREEZE`; `history(player, page)` (pagine da 10, dal più recente); `moneySupplyNow()` = `-FAUCET - SINK` |
+| `RollbackRefusedException` (`LedgerException`) | Rollback non ammesso, nessun movimento | – |
+
+Test: `EconomyAdminIT` (8).
+

@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 7.
+- **Prossimo passo:** M1b Task 8 (riconciliazione).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 7 – operazioni admin (give, take, rollback, freeze, storico)
+
+**Cosa**
+- `EconomyAdmin`: give/take con audit dopo il commit, rollback compensativo idempotente (solo stagione corrente, non su un rollback), freeze/unfreeze con audit solo se cambia, storico a pagine, massa monetaria. `RollbackRefusedException`.
+
+**File**
+- `module-economy/src/main/java/org/breachsmp/core/economy/admin/{EconomyAdmin,RollbackRefusedException}.java`; test `admin/EconomyAdminIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :module-economy:test --tests "*EconomyAdminIT"` → `cannot find symbol EconomyAdmin`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 160 test, 0 skipped; `EconomyAdminIT` 8/8 (rollback ripetuto = stesso tx, rollback di un rollback / tx inesistente / altra stagione rifiutati, rollback che manderebbe un giocatore in negativo → `InsufficientFundsException` senza movimenti).
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Il test "altra stagione" fa un `UPDATE ledger_tx` **solo nel test** per simulare la condizione; il codice di produzione non modifica mai `ledger_tx`.
 
 ---
 
