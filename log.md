@@ -10,8 +10,30 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 3 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 4 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 3 – contratti di piattaforma in `core-api`
+
+**Cosa**
+- Nuovi contratti senza Bukkit: `data/DataAccessException`; `util/Uuids`, `IdemKeys`, `JsonText`; `player/PlayerProfile`, `PlayerService`, `PlayerHooks`, `LoginHook`, `QuitHook`; `season/SeasonService`; `audit/AuditEntry`, `AuditService`; `tunable/Tunable`, `TunableService`; `job/Job`, `NextRun`, `JobScheduler`; `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation`, `ModuleCommand`, `AdminSubcommand`, `CommandRegistry`; `lock/PlayerLock`.
+- `ModuleContext.dataSource()` (D-16) e `ARKModule.healthDetails()`; `DefaultModuleContext` riceve il `DataSource` (ultimo componente), `ARKPlugin` lo passa.
+
+**File**
+- `core-api/src/main/java/org/breachsmp/core/api/{data,util,player,season,audit,tunable,job,command,lock}/…` (nuovi), `module/ModuleContext.java`, `module/ARKModule.java`; test `util/UuidsTest`, `IdemKeysTest`, `JsonTextTest`, `command/CommandResultTest`; `core-platform/.../module/DefaultModuleContext.java`, `ARKPlugin.java`, test `DefaultModuleContextTest`, `ModuleRegistryTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-api:test` → `compileTestJava` fallito, `cannot find symbol`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 83 test, 0 skipped, 0 failure (`core-api`: 13).
+- Nota: un primo GREEN aveva 2 failure in `JsonTextTest`, dovute al test scritto con una heredoc di bash che aveva alterato le sequenze `\\`; test riscritto identico al piano, poi verde.
+
+**Decisioni**
+- Nessun ID nuovo. Deviazione dal piano: anche `ModuleRegistryTest` costruiva `DefaultModuleContext` e ora gli passa un `DataSource` proxy che lancia su ogni chiamata (`NO_DATABASE`).
+
+**Aperto**
+- Le implementazioni arrivano nei Task 4–8 (voci ⏳ in `map.md` §4).
 
 ---
 

@@ -84,6 +84,7 @@ Contratto di ogni modulo di dominio (= `BreachModule` della spec, D-01).
 | `void onEnable()` | Avvia job e listener; dipendenze già abilitate | `ModuleRegistry.enableAll` | – |
 | `void onDisable()` | Drain e flush; ordine inverso. **Mai** `sync()`/`executors().main()` qui (lo scheduler Bukkit rifiuta task durante lo spegnimento) | `ModuleRegistry.disableAll` | – |
 | `HealthStatus health()` | Stato per `/breach health`; **qualsiasi thread, niente Bukkit, niente I/O** | `ModuleRegistry.health` (dal thread DB) | – |
+| `default List<String> healthDetails()` | Righe extra per `/breach health` (es. massa monetaria); **thread DB, query brevi ammesse** | `ModuleRegistry.details` ⏳ Task 8 | M1a |
 | `default Collection<ModuleDependency> dependencies()` | Moduli da avviare prima; default nessuno | `ModuleRegistry.load` | Reso `default` in Task 2 |
 
 ### `api/module/ModuleContext.java` ✅ Task 2 (da classe vuota a interfaccia)
@@ -96,6 +97,7 @@ Ciò che la piattaforma dà a un modulo in `onLoad`. Implementazione: `platform/
 | `CoreExecutors executors()` | Executor MAIN/DB/COMPUTE/MARKET |
 | `Logger logger()` | Logger del plugin (java.util.logging) |
 | `<T> CompletableFuture<T> sync(Supplier<T>)` | Esegue sul main thread; unico modo per tornare sul main (I2) |
+| `DataSource dataSource()` | Pool del DB del gioco (D-16); solo sul thread DB |
 
 Quando toccarla: quando un modulo ha bisogno di una nuova capacità di piattaforma (es. registrare listener/comandi, config del modulo). Aggiungere metodi = aggiornare `DefaultModuleContext`.
 
@@ -113,6 +115,26 @@ Registry tipizzato dei servizi tra moduli. Implementazione: `platform/service/Si
 | `<T> void register(Class<T>, T)` | Pubblica un servizio; doppia registrazione = `IllegalStateException` |
 | `<T> Optional<T> find(Class<T>)` | Servizio opzionale |
 | `<T> T require(Class<T>)` | Servizio obbligatorio; assente = `IllegalStateException` con messaggio esplicito |
+
+### Servizi di piattaforma (M1a, D-15…D-18) – interfacce in `core-api`, implementazioni in `core-platform`
+Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutti registrati da `ARKPlugin` prima di caricare i moduli.
+
+| Tipo (`api/…`) | A cosa serve | Implementazione |
+| --- | --- | --- |
+| `data/DataAccessException` | `RuntimeException` per errori SQL, messaggio italiano + causa | – |
+| `util/Uuids` | `toBytes(UUID)` / `fromBytes(byte[])` per colonne `BINARY(16)` | – |
+| `util/IdemKeys` | `of(String)` → UUID v3 deterministico per chiavi di job/rollback (E15) | – |
+| `util/JsonText` | `write(Map<String,?>)` → JSON piatto (testo, interi, booleani, null; niente decimali) per `audit_log.detail` e `ledger_tx.meta` | – |
+| `player/PlayerProfile` (record) | `uuid, name, firstSeen, lastSeen` | – |
+| `player/PlayerService` | `findByName` (senza maiuscole, il più recente), `find(uuid)`; future sul thread DB | `platform/player/JdbcPlayerService` ⏳ Task 4 |
+| `player/PlayerHooks`, `LoginHook`, `QuitHook` | Hook dei moduli: login sul thread asincrono (I/O ok, eccezione = rifiuto), uscita sul main (niente I/O) | `platform/player/PlayerHookRegistry` ⏳ Task 7 |
+| `season/SeasonService` | `currentSeasonId()` | `platform/season/CurrentSeason` ⏳ Task 4 |
+| `audit/AuditEntry`, `AuditService` | Audit append-only: `record` (async), `recordNow` (bloccante, solo da thread DB/login) | `platform/audit/JdbcAuditService` ⏳ Task 4 |
+| `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ⏳ Task 5 |
+| `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ⏳ Task 6 |
+| `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation` | Tipi neutri per i comandi: righe con tono, avvisi ad altri giocatori, mittente (`senderId` null = console), permessi extra | – |
+| `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ⏳ Task 8 |
+| `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ⏳ Task 7 |
 
 ### `api/concurrent/CoreExecutors.java` ✅ Task 2
 Gli executor della spec §3: `Executor main()`, `db()`, `compute()`, `market()`. Implementazione: `platform/concurrent/PlatformExecutors`. Regola: I/O solo su `db()`, calcolo puro su `compute()`, matching azioni solo su `market()`, Bukkit API solo su `main()`.
@@ -214,7 +236,7 @@ Implementa `ServiceRegistry` con `ConcurrentHashMap<Class<?>, Object>`. Test: `S
 
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
-| `DefaultModuleContext` (record) ✅ | Implementa `ModuleContext` | `sync(Supplier)` = `CompletableFuture.supplyAsync(task, executors.main())` |
+| `DefaultModuleContext` (record) ✅ | Implementa `ModuleContext`; componenti `(moduleId, services, executors, logger, dataSource)` | `sync(Supplier)` = `CompletableFuture.supplyAsync(task, executors.main())` |
 | `ModuleRegistry` ✅ | Ciclo di vita dei moduli; catalogo immutabile assegnato in `load()` (letto da altri thread in `health()`) | `load(Collection<? extends ARKModule>, Predicate<String> isEnabled, Function<String, ModuleContext>)`: id duplicati → `IllegalStateException`; ordina con `DependencyResolver`; `onLoad` in ordine. `enableAll()`: `onEnable` in ordine, errore → `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati, un errore non ferma gli altri. `List<String> order()`. `Map<String, HealthStatus> health()`: abilitati → `health()` (eccezione → `FAILED`), caricati non abilitati → `STARTING`, altri → `DISABLED` |
 | `ModuleStartupException` ✅ | Errore in `onLoad`/`onEnable`; il messaggio contiene l'id del modulo | – |
 | `ModuleCatalog` ✅ | **Unico posto** che elenca le implementazioni dei moduli (I7) | `static List<ARKModule> all()` → in M0 `List.of()` |

@@ -9,6 +9,8 @@ import org.breachsmp.core.domain.module.DependencyException;
 import org.breachsmp.core.platform.service.SimpleServiceRegistry;
 import org.junit.jupiter.api.Test;
 
+import javax.sql.DataSource;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,6 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModuleRegistryTest {
+
+    /** I moduli finti non usano il DB: qualsiasi chiamata è un errore del test. */
+    private static final DataSource NO_DATABASE = (DataSource) Proxy.newProxyInstance(ModuleRegistryTest.class.getClassLoader(),
+            new Class<?>[]{DataSource.class}, (proxy, method, args) -> {
+                throw new UnsupportedOperationException(method.getName());
+            });
 
     private static final CoreExecutors DIRECT = new CoreExecutors() {
         @Override public Executor main() { return Runnable::run; }
@@ -148,7 +156,7 @@ class ModuleRegistryTest {
 
     private void load(Predicate<String> enabled, FakeModule... modules) {
         registry.load(List.of(modules), enabled,
-                id -> new DefaultModuleContext(id, new SimpleServiceRegistry(), DIRECT, Logger.getLogger(id)));
+                id -> new DefaultModuleContext(id, new SimpleServiceRegistry(), DIRECT, Logger.getLogger(id), NO_DATABASE));
     }
 
     private static final class FakeModule implements ARKModule {

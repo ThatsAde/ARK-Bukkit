@@ -31,6 +31,11 @@ public interface ARKModule {
     /** Stato per {@code /breach health}. Può essere chiamato da qualsiasi thread: niente Bukkit API, niente I/O bloccante. */
     HealthStatus health();
 
+    /** Righe extra per {@code /breach health} (es. massa monetaria). Chiamato sul thread DB: può fare query brevi. */
+    default List<String> healthDetails() {
+        return List.of();
+    }
+
     /** Moduli che devono essere caricati e abilitati prima di questo. */
     default Collection<ModuleDependency> dependencies() {
         return List.of();

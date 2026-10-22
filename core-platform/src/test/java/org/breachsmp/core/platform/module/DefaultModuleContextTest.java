@@ -4,12 +4,15 @@ import org.breachsmp.core.platform.concurrent.PlatformExecutors;
 import org.breachsmp.core.platform.service.SimpleServiceRegistry;
 import org.junit.jupiter.api.Test;
 
+import javax.sql.DataSource;
+import java.lang.reflect.Proxy;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class DefaultModuleContextTest {
 
@@ -21,7 +24,12 @@ class DefaultModuleContextTest {
             task.run();
         };
         try (PlatformExecutors executors = new PlatformExecutors(main, 1, 1)) {
-            var context = new DefaultModuleContext("economy", new SimpleServiceRegistry(), executors, Logger.getLogger("test"));
+            DataSource dataSource = (DataSource) Proxy.newProxyInstance(getClass().getClassLoader(),
+                    new Class<?>[]{DataSource.class}, (proxy, method, args) -> {
+                        throw new UnsupportedOperationException(method.getName());
+                    });
+            var context = new DefaultModuleContext("economy", new SimpleServiceRegistry(), executors, Logger.getLogger("test"), dataSource);
+            assertSame(dataSource, context.dataSource());
             assertEquals(42, context.sync(() -> 42).get(5, SECONDS));
             assertEquals(1, mainRuns.get());
         }

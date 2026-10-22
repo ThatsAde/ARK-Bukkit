@@ -75,7 +75,7 @@ public final class ARKPlugin extends JavaPlugin {
         ServiceRegistry services = new SimpleServiceRegistry();
         modules = new ModuleRegistry(getLogger());
         modules.load(ModuleCatalog.all(), config::moduleEnabled,
-                id -> new DefaultModuleContext(id, services, executors, getLogger()));
+                id -> new DefaultModuleContext(id, services, executors, getLogger(), dataSource));
         modules.enableAll();
 
         HealthService health = new HealthService(modules, dataSource, executors);
