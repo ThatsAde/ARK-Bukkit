@@ -7,6 +7,7 @@ import org.breachsmp.core.api.module.ModuleDependency;
 import org.breachsmp.core.domain.module.DependencyResolver;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,7 +26,7 @@ import java.util.logging.Logger;
 public final class ModuleRegistry {
 
     private final Logger logger;
-    private final Map<String, ARKModule> catalog = new LinkedHashMap<>();
+    private volatile Map<String, ARKModule> catalog = Map.of();
     private final List<ARKModule> loaded = new CopyOnWriteArrayList<>();
     private final List<ARKModule> enabled = new CopyOnWriteArrayList<>();
     private boolean loadCalled;
@@ -46,11 +47,13 @@ public final class ModuleRegistry {
             throw new IllegalStateException("load() è già stato eseguito");
         }
         loadCalled = true;
+        Map<String, ARKModule> byId = new LinkedHashMap<>();
         for (ARKModule module : modules) {
-            if (catalog.putIfAbsent(module.id(), module) != null) {
+            if (byId.putIfAbsent(module.id(), module) != null) {
                 throw new IllegalStateException("Id modulo duplicato: " + module.id());
             }
         }
+        catalog = Collections.unmodifiableMap(byId); // congelato: letto da altri thread in health() (review M0, M5)
 
         Map<String, List<String>> graph = new HashMap<>();
         for (ARKModule module : catalog.values()) {

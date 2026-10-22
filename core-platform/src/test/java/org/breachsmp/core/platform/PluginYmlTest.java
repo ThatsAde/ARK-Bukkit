@@ -28,4 +28,15 @@ class PluginYmlTest {
             assertTrue(yml.containsKey("api-version"));
         }
     }
+
+    @Test
+    void adminPermissionsDefaultToOp() throws IOException {
+        try (InputStream in = getClass().getResourceAsStream("/plugin.yml")) {
+            Map<String, Object> yml = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
+            @SuppressWarnings("unchecked")
+            Map<String, Map<String, Object>> permissions = (Map<String, Map<String, Object>>) yml.get("permissions");
+            assertEquals("op", permissions.get("breach.command").get("default"));
+            assertEquals("op", permissions.get("breach.admin.health").get("default"));
+        }
+    }
 }

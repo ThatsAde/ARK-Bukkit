@@ -45,7 +45,7 @@ module-*        (futuri: solo core-api [+ core-domain])
 | `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()`; `BREACH_IT_JDBC_URL` come input dei task `Test` (D-13: niente esito "saltato" ripreso dalla cache) | Regole comuni a tutti i moduli |
 | `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
 | `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
-| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
+| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
@@ -82,7 +82,7 @@ Contratto di ogni modulo di dominio (= `BreachModule` della spec, D-01).
 | `String id()` | Id stabile minuscolo; chiave `modules.<id>.enabled` | `ModuleRegistry`, `DependencyResolver` (via grafo) | Mai cambiare l'id di un modulo rilasciato |
 | `void onLoad(ModuleContext)` | Registra servizi, prepara stato. Niente job/listener | `ModuleRegistry.load` (ordine di dipendenza) | – (contratto) |
 | `void onEnable()` | Avvia job e listener; dipendenze già abilitate | `ModuleRegistry.enableAll` | – |
-| `void onDisable()` | Drain e flush; ordine inverso | `ModuleRegistry.disableAll` | – |
+| `void onDisable()` | Drain e flush; ordine inverso. **Mai** `sync()`/`executors().main()` qui (lo scheduler Bukkit rifiuta task durante lo spegnimento) | `ModuleRegistry.disableAll` | – |
 | `HealthStatus health()` | Stato per `/breach health`; **qualsiasi thread, niente Bukkit, niente I/O** | `ModuleRegistry.health` (dal thread DB) | – |
 | `default Collection<ModuleDependency> dependencies()` | Moduli da avviare prima; default nessuno | `ModuleRegistry.load` | Reso `default` in Task 2 |
 
@@ -199,7 +199,8 @@ Implementa `CoreExecutors` e `AutoCloseable`.
 | `PlatformExecutors(Executor main, int dbThreads, int computeThreads)` | `main` = scheduler Bukkit (in test: `Runnable::run`); DB = pool fisso (= dimensione pool Hikari), COMPUTE fisso, MARKET **1 thread** |
 | `main()/db()/compute()/market()` | Executor della spec §3; thread daemon `breach-db-N`, `breach-compute-N`, `breach-market-1` |
 | `Map<String,Integer> queueDepths()` | Task in coda per `db`, `compute`, `market` (in quest'ordine) per `/breach health` |
-| `close()` | Shutdown in ordine market → compute → db, attesa max 10 s ciascuno, poi `shutdownNow` |
+| `ScheduledExecutorService timer()` | Timer di piattaforma, 1 thread daemon `breach-timer` (D-26): **solo** per passare lavoro agli altri pool a intervalli (scheduler job, ricarica tunable) |
+| `close()` | `shutdownNow` del timer, poi shutdown in ordine market → compute → db con attesa max 10 s ciascuno (poi `shutdownNow`); un interrupt del chiamante **non** salta il drain dei pool successivi, il flag è ripristinato alla fine (D-28) |
 
 Test: `PlatformExecutorsTest`.
 
@@ -211,7 +212,7 @@ Implementa `ServiceRegistry` con `ConcurrentHashMap<Class<?>, Object>`. Test: `S
 | Classe | Ruolo | Metodi |
 | --- | --- | --- |
 | `DefaultModuleContext` (record) ✅ | Implementa `ModuleContext` | `sync(Supplier)` = `CompletableFuture.supplyAsync(task, executors.main())` |
-| `ModuleRegistry` ✅ | Ciclo di vita dei moduli | `load(Collection<? extends ARKModule>, Predicate<String> isEnabled, Function<String, ModuleContext>)`: id duplicati → `IllegalStateException`; ordina con `DependencyResolver`; `onLoad` in ordine. `enableAll()`: `onEnable` in ordine, errore → `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati, un errore non ferma gli altri. `List<String> order()`. `Map<String, HealthStatus> health()`: abilitati → `health()` (eccezione → `FAILED`), caricati non abilitati → `STARTING`, altri → `DISABLED` |
+| `ModuleRegistry` ✅ | Ciclo di vita dei moduli; catalogo immutabile assegnato in `load()` (letto da altri thread in `health()`) | `load(Collection<? extends ARKModule>, Predicate<String> isEnabled, Function<String, ModuleContext>)`: id duplicati → `IllegalStateException`; ordina con `DependencyResolver`; `onLoad` in ordine. `enableAll()`: `onEnable` in ordine, errore → `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati, un errore non ferma gli altri. `List<String> order()`. `Map<String, HealthStatus> health()`: abilitati → `health()` (eccezione → `FAILED`), caricati non abilitati → `STARTING`, altri → `DISABLED` |
 | `ModuleStartupException` ✅ | Errore in `onLoad`/`onEnable`; il messaggio contiene l'id del modulo | – |
 | `ModuleCatalog` ✅ | **Unico posto** che elenca le implementazioni dei moduli (I7) | `static List<ARKModule> all()` → in M0 `List.of()` |
 

@@ -61,6 +61,7 @@ class MigratorIT {
                             'test', NOW(), 0, 1)
                     """);
         }
-        assertThrows(SchemaTooNewException.class, migrator::migrate);
+        SchemaTooNewException error = assertThrows(SchemaTooNewException.class, migrator::migrate);
+        assertTrue(error.getMessage().contains("V999"), error.getMessage());
     }
 }

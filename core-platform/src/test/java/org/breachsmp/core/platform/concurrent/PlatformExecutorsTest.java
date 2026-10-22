@@ -9,6 +9,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -76,5 +78,34 @@ class PlatformExecutorsTest {
 
     private static String threadName(Executor executor) throws Exception {
         return CompletableFuture.supplyAsync(() -> Thread.currentThread().getName(), executor).get(5, SECONDS);
+    }
+
+    @Test
+    void closeDrainsQueuedWorkEvenWhenTheCallerIsInterrupted() {
+        executors = new PlatformExecutors(Runnable::run, 1, 1);
+        AtomicBoolean finished = new AtomicBoolean();
+        executors.db().execute(() -> {
+            try {
+                Thread.sleep(200);
+                finished.set(true);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        Thread.currentThread().interrupt();
+        executors.close();
+        executors = null;
+        assertTrue(Thread.interrupted(), "close() deve ripristinare il flag di interrupt");
+        assertTrue(finished.get(), "il lavoro già in coda sul pool DB deve finire");
+    }
+
+    @Test
+    void timerRunsOnItsOwnDaemonThread() throws Exception {
+        executors = new PlatformExecutors(Runnable::run, 1, 1);
+        CompletableFuture<Thread> thread = new CompletableFuture<>();
+        executors.timer().schedule(() -> thread.complete(Thread.currentThread()), 10, TimeUnit.MILLISECONDS);
+        Thread timerThread = thread.get(5, SECONDS);
+        assertEquals("breach-timer", timerThread.getName());
+        assertTrue(timerThread.isDaemon());
     }
 }

@@ -38,6 +38,11 @@ tasks {
         }
     }
 
+    // Il jar senza dipendenze non deve sovrascrivere quello shadow (stesso nome con classifier vuoto)
+    jar {
+        archiveClassifier = "plain"
+    }
+
     shadowJar {
         archiveClassifier = ""
         // Flyway e il driver MariaDB si trovano via ServiceLoader: i file META-INF/services vanno uniti e rilocati
@@ -66,7 +71,6 @@ tasks {
         description = "Verifica che il jar shadow contenga i file META-INF/services uniti e rilocati (Flyway, driver MariaDB)"
         val jarFile = shadowJar.flatMap { it.archiveFile }
         dependsOn(shadowJar)
-        mustRunAfter(jar) // shadowJar e jar scrivono lo stesso file (classifier vuoto)
         inputs.file(jarFile)
         doLast {
             val expected = mapOf(

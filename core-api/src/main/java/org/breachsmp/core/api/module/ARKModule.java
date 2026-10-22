@@ -21,7 +21,11 @@ public interface ARKModule {
     /** Avvia job e listener. Tutte le dipendenze sono già abilitate. */
     void onEnable();
 
-    /** Svuota le code e fa flush. Chiamato in ordine inverso di dipendenza. */
+    /**
+     * Svuota le code e fa flush. Chiamato in ordine inverso di dipendenza.
+     * Non usare {@link ModuleContext#sync} né {@code executors().main()} qui o nel lavoro che ne deriva:
+     * durante lo spegnimento lo scheduler Bukkit rifiuta nuovi task e il future fallirebbe.
+     */
     void onDisable();
 
     /** Stato per {@code /breach health}. Può essere chiamato da qualsiasi thread: niente Bukkit API, niente I/O bloccante. */

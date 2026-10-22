@@ -10,8 +10,39 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** eseguire M1a dal Task 1 (che copia in questo log le decisioni D-14…D-28 del piano).
+- **Prossimo passo:** M1a Task 2 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 1 – correzioni rinviate da M0
+
+**Cosa**
+- `PlatformExecutors`: nuovo `timer()` (1 thread daemon `breach-timer`, D-26); `close()` ferma il timer e poi drena market → compute → db anche se il chiamante è interrotto (prima un interrupt saltava il drain di compute e db), ripristinando il flag alla fine (review M0, M2).
+- `ModuleRegistry`: catalogo immutabile assegnato in `load()` (review M5).
+- `ARKModule.onDisable`: Javadoc che vieta lavoro sul main durante lo spegnimento (review M3).
+- `core-platform/build.gradle.kts`: jar normale con classifier `plain`, così non sovrascrive lo shadow; tolto `mustRunAfter(jar)` da `verifyShadowJar`.
+- Test aggiunti (review M6): permessi admin `op` in `PluginYmlTest`, messaggio `V999` in `MigratorIT`.
+
+**File**
+- `core-platform/.../concurrent/PlatformExecutors.java`, `.../module/ModuleRegistry.java`, `core-api/.../module/ARKModule.java`, `core-platform/build.gradle.kts`, test `PlatformExecutorsTest`, `PluginYmlTest`, `MigratorIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test --tests "...PlatformExecutorsTest"` → `compileTestJava` fallito, `cannot find symbol` (`timer()`).
+- GREEN: `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 73 test, 0 skipped, 0 failure; in `core-platform/build/libs/` ci sono `core-platform-1.0-SNAPSHOT.jar` (shadow) e `core-platform-1.0-SNAPSHOT-plain.jar`.
+
+**Decisioni** (dal piano `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md`)
+- **D-14** M1 è diviso in due piani: M1a (piattaforma) e M1b (ledger, `module-economy`, comandi, riconciliazione). M1 è chiusa solo a fine M1b.
+- **D-15** Comandi e hook dei moduli senza Bukkit: in `core-api` `ModuleCommand`, `AdminSubcommand`, `CommandInvocation`, `CommandResult`, `ChatLine`/`Tone`, `Notice`, `LoginHook`/`QuitHook`; la piattaforma li adatta a Paper. I moduli non dipendono da Paper.
+- **D-16** `ModuleContext.dataSource()`: i moduli ricevono il pool (`javax.sql`, JDK).
+- **D-17** I tunable di M1 sono solo interi (`registerLong`); BOOLEAN/STRING quando servono.
+- **D-18** Audit: tunable e `audit_log` nella stessa transazione; operazioni di denaro (M1b) audit dopo il commit (la riga `ledger_tx` con `actor` e `meta.reason` è la traccia autorevole, audit fallito → SEVERE). `AuditService.record` (asincrono) e `recordNow` (bloccante): mai attendere un future del pool DB da dentro il pool DB.
+- **D-22** `TestDatabase` (+ `MutableClock`) nei testFixtures di `core-platform` (package `testkit`); `TestDatabase.migrated()`; build service `ItDatabaseLock` (`maxParallelUsages = 1`) serializza i task `Test` (schema `breach_it` condiviso).
+- **D-26** Il timer di piattaforma `breach-timer` passa solo lavoro al pool DB: scheduler job ogni 60 s, ricarica tunable ogni 30 s; lease dei job 10 minuti.
+- **D-28** Correzioni rinviate dalla review M0: jar `plain`, drain con interrupt, catalogo congelato, Javadoc `onDisable`, asserzioni di `PluginYmlTest` e `MigratorIT`.
+
+**Aperto**
+- Nessuno per questo task.
 
 ---
 
