@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 2.
+- **Prossimo passo:** M1b Task 3.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 2 – importi, tassa, regole del ledger, rate limit, orario
+
+**Cosa**
+- `core-domain`: `economy/Money` (parse e format degli importi, E1/E21), `economy/FeePolicy` (`ceil(P*t/10000)`), `economy/LedgerRules` (`validate`, `balancesAfter`), `ratelimit/SlidingWindowLimiter`, `schedule/Schedules.nextDaily`.
+
+**File**
+- `core-domain/src/main/java/org/breachsmp/core/domain/{economy,ratelimit,schedule}/*` (nuovi); test `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest`, `SchedulesTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-domain:test` → `cannot find symbol` (FeePolicy, Money, …).
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 133 test, 0 skipped (`MoneyTest` 3, `FeePolicyTest` 2, `LedgerRulesTest` 5, `SlidingWindowLimiterTest` 1, `SchedulesTest` 1).
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 

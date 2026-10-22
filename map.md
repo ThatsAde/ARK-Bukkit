@@ -181,6 +181,18 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 ### `domain/module/DependencyException.java` ✅ Task 3
 `RuntimeException` per grafo dei moduli non valido. Fa fallire l'avvio (D-08).
 
+### `domain/economy/`, `domain/ratelimit/`, `domain/schedule/` ✅ (M1b Task 2)
+
+| Classe | Metodi | Chi la usa |
+| --- | --- | --- |
+| `economy/Money` | `UNITS_PER_COIN = 100` (E1); `long parse(String)`: cifre con ≤ 2 decimali, `,` o `.`, niente migliaia, > 0, altrimenti `IllegalArgumentException` col messaggio per l'utente; `String format(long)`: `1.234,56 monete`, `1 moneta`, decimali solo se ≠ 0 | comandi di `module-economy` |
+| `economy/FeePolicy` | `fee(amount, bp)` = `ceil(amount * bp / 10000)` (bp in [0, 10000]); `split(amount, bp)` → `Split(fee, net)` | `/pay` (tassa trasferimenti) |
+| `economy/LedgerRules` | `validate(TxRequest)` (tipo noto, 2–255 gambe, delta ≠ 0, conti distinti, somma 0, meta JSON valida) → `InvalidTransactionException`; `balancesAfter(List<Posting>, bypassFreeze)`: prima il freeze (`AccountFrozenException`), poi saldo < 0 su conto che non può → `InsufficientFundsException`. Record `AccountState(id, ref, balance, frozen)`, `Posting(account, delta)` | `JdbcLedgerService`, test di proprietà |
+| `ratelimit/SlidingWindowLimiter` | `SlidingWindowLimiter(Clock, Duration)`; `tryAcquire(UUID, limit)` (thread-safe, limite passato a ogni chiamata); `forget(UUID)` | `/pay` |
+| `schedule/Schedules` | `nextDaily(now, hour)`: prossima `hour:00` strettamente dopo `now` | job di riconciliazione |
+
+Test: `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest`, `SchedulesTest`.
+
 ---
 
 ## 6. `core-platform` – bootstrap e infrastruttura
