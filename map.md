@@ -144,6 +144,23 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ✅ |
 | `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ✅ |
 
+### `api/economy/` ✅ (M1b Task 1) – contratti del ledger (spec §5)
+Unico servizio pubblico dell'economia: `LedgerService` (D-31). Freeze, storico, give/take/rollback restano interni a `module-economy`.
+
+| Tipo | A cosa serve |
+| --- | --- |
+| `LedgerService` | `execute(TxRequest)` → `CompletableFuture<TxResult>` (thread DB); `balance(AccountRef)` (conto assente = 0); `subscribe(Consumer<LedgerTxCommitted>)` (dopo il COMMIT, thread DB) |
+| `TxRequest` (record) | `idemKey` (I4), `kind`, `legs` (somma 0, conti distinti), `meta` (JSON piatto, `null` → vuota), `actor` (`null` = console/sistema) |
+| `Leg` (record) | `account` + `delta` in unità minime |
+| `TxResult` (record) | `txId`, `idemKey`, `kind`, `createdAt`, `entries` (`EntryView`: conto, delta, saldo dopo), `replayed`; `balanceAfter(AccountRef)` |
+| `AccountRef` (record) | `type` (`OwnerType` PLAYER/TEAM/SYSTEM) + `owner` UUID; `player(uuid)`, `system(SystemAccount)`, `mayGoNegative()` (solo FAUCET); `toString` = `giocatore:<uuid>` / `sistema:SINK` |
+| `SystemAccount` (enum) | FAUCET, SINK, TAX_POOL, ESCROW con `ref()` = `new UUID(0, 1..4)` (D-19) |
+| `TxKinds` | `PAY`, `ADMIN_GIVE`, `ADMIN_TAKE`, `ROLLBACK`, `STARTING_BALANCE`; `KNOWN`; `bypassesFreeze(kind)` (tutti tranne `PAY`) |
+| `LedgerTxCommitted` (record) | Evento con il `TxResult` |
+| `LedgerException` e sottoclassi | `InsufficientFundsException(account)`, `AccountFrozenException(account)`, `IdempotencyConflictException`, `InvalidTransactionException` |
+
+Quando toccarlo: nuovo tipo di transazione → costante in `TxKinds` (+ `KNOWN`, e `FREEZE_BYPASS` se è admin/sistema).
+
 ### `api/concurrent/CoreExecutors.java` ✅ Task 2
 Gli executor della spec §3: `Executor main()`, `db()`, `compute()`, `market()`. Implementazione: `platform/concurrent/PlatformExecutors`. Regola: I/O solo su `db()`, calcolo puro su `compute()`, matching azioni solo su `market()`, Bukkit API solo su `main()`.
 

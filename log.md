@@ -9,9 +9,39 @@
 ## Stato attuale
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
-- **Milestone in corso:** M1 – Ledger, divisa in due piani. **M1a (piattaforma) completata** il 2026-10-22 sul branch `m1-ledger`; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) da iniziare.
-- **Prossimo passo:** M1b Task 1 (copia in questo log le decisioni D-19…D-33).
+- **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
+- **Prossimo passo:** M1b Task 2.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 1 – contratti del ledger
+
+**Cosa**
+- Nuovo package `core-api/.../economy/`: `LedgerService`, `TxRequest`, `Leg`, `TxResult`, `EntryView`, `AccountRef`, `OwnerType`, `SystemAccount`, `TxKinds`, `LedgerTxCommitted`, `LedgerException`, `InsufficientFundsException`, `AccountFrozenException`, `IdempotencyConflictException`, `InvalidTransactionException`.
+
+**File**
+- `core-api/src/main/java/org/breachsmp/core/api/economy/*` (nuovi); test `AccountRefTest`, `TxModelTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-api:test` → `package SystemAccount does not exist`, `cannot find symbol`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 121 test, 0 skipped (`AccountRefTest` 2, `TxModelTest` 3).
+
+**Decisioni** (dal piano `docs/superpowers/plans/2026-10-22-m1b-ledger.md`)
+- **D-19** Conti di sistema creati in modo pigro come quelli dei giocatori, con `owner_ref` = `new UUID(0, n)` (FAUCET 1, SINK 2, TAX_POOL 3, ESCROW 4). Sostituisce E7.
+- **D-20** Esecuzione del ledger: validazione pura; id dei conti risolti/creati in autocommit prima della transazione; `INSERT ledger_tx` (1062 = replay, `kind` diverso → `IdempotencyConflictException`); un solo `SELECT … WHERE id IN (…) ORDER BY id FOR UPDATE`; regole pure; `UPDATE` + `INSERT ledger_entry`; `COMMIT`, poi cache ed evento. Retry fino a 3 volte con jitter su 1213, 1205, 1020. `created_at` troncato ai millisecondi.
+- **D-21** La regola I7 è imposta dal convention plugin `breach.module-conventions`. Aggiorna D-12: ArchUnit resta per M10.
+- **D-23** jqwik 1.10.1, Caffeine 3.3.0 rilocata in `org.breachsmp.core.libs.caffeine`; jspecify ed errorprone esclusi dal jar.
+- **D-24** Saldo iniziale al login con `STARTING_BALANCE` e chiave `IdemKeys.of("start:<stagione>:<uuid>")`, una volta per stagione (lo riceve anche chi è già entrato se il tunable sale).
+- **D-25** Rollback solo della stagione corrente, gambe invertite, chiave `IdemKeys.of("rollback:<id>")`; un rollback non si annulla.
+- **D-27** `/breach recon` esegue subito la riconciliazione (`breach.admin.recon`).
+- **D-29** Cache dei saldi Caffeine per `AccountRef` con la `version` del conto (vince la più alta), `expireAfterAccess` 30 min, max 10.000; aggiornata solo dopo commit o lettura dal DB.
+- **D-31** In `core-api` per l'economia solo `LedgerService` (E8 parziale): il resto è interno a `module-economy`.
+- **D-32** Tunable economici in unità minime: `economy.starting_balance` (0, [0, 100000000]), `economy.transfer_fee_bp` (0, [0, 5000]), `economy.pay_rate_per_minute` (10, [1, 1000]), `economy.recon_hour` (4, [0, 23]).
+- **D-33** Restano aperti senza bloccare: niente Vault in M1 (decisione con M4); saldo iniziale e tassa `/pay` a 0 finché non si calibra in beta.
+
+**Aperto**
+- Nessuno.
 
 ---
 
