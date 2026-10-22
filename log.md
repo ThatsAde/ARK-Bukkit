@@ -9,8 +9,29 @@
 ## Stato attuale
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
-- **Prossimo passo:** piano di M1 (Ledger) a partire dal design `docs/superpowers/specs/2026-10-21-m1-ledger-design.md` (decisioni E1–E22).
+- **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
+- **Prossimo passo:** eseguire M1a dal Task 1 (che copia in questo log le decisioni D-14…D-28 del piano).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – Piani di M1 (M1a piattaforma, M1b ledger)
+
+**Cosa**
+- Scritti i piani di implementazione di M1 a partire dal design `docs/superpowers/specs/2026-10-21-m1-ledger-design.md`, diviso in due: **M1a** (correzioni rinviate da M0, servizi di piattaforma: stagione, profilo giocatore, audit, tunable, job con lease, PlayerLock, hook di login/quit, comandi dei moduli senza Bukkit) e **M1b** (contratti e regole pure del ledger con jqwik, `module-economy`, ledger JDBC, 1000 transazioni concorrenti, admin, riconciliazione, `/balance`, `/pay`, smoke test).
+- Verificati prima di scrivere: API Paper 26.2 (`AsyncPlayerPreLoginEvent.disallow(Result, Component)`, `PlayerQuitEvent`, `JavaPlugin.registerCommand(label, descrizione, alias, BasicCommand)`); su MariaDB 11.4.13 reale: colonne `at`/`value` ammesse, JSON validato (errore 4025), CHECK → 4025, chiave duplicata → 1062, `REPEATABLE-READ`, `innodb_snapshot_isolation=0`; versioni jqwik 1.10.1 (JUnit Platform 1.14.4) e Caffeine 3.3.0 con almeno 2 settimane di anzianità.
+
+**File**
+- Creati: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md`, `docs/superpowers/plans/2026-10-22-m1b-ledger.md`. Modificati: `docs/roadmap.md`, `log.md`. Nessun file di codice.
+
+**Verifica**
+- Nessun codice: niente build.
+
+**Decisioni**
+- Le decisioni D-14…D-33 sono **proposte nei piani** e vengono registrate qui dai rispettivi Task 1 quando l'esecuzione parte.
+
+**Aperto**
+- Design §8: Vault/ChestShop e default 0 per saldo iniziale e tassa restano aperti (D-33, non bloccano).
 
 ---
 
