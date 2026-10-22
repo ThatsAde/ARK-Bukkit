@@ -9,9 +9,32 @@
 ## Stato attuale
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
-- **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 10 (chiusura), poi M1b.
+- **Milestone in corso:** M1 – Ledger, divisa in due piani. **M1a (piattaforma) completata** il 2026-10-22 sul branch `m1-ledger`; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) da iniziare.
+- **Prossimo passo:** M1b Task 1 (copia in questo log le decisioni D-19…D-33).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – chiusura (fondamenta di piattaforma)
+
+**Cosa**
+- Chiusi i 10 task di M1a: correzioni rinviate da M0, IT serializzati e `TestDatabase` nei testFixtures, contratti di piattaforma in `core-api`, stagione/profilo/audit (V002, V003), tunable a caldo, job con lease, `PlayerLock` e login fail-closed, comandi dei moduli senza Bukkit, cablaggio in `ARKPlugin`.
+- Roadmap: M1 "🟡 M1a completata, M1b in corso". Legenda della mappa generalizzata (non più legata al piano M0).
+
+**File**
+- `docs/roadmap.md`, `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 116 test, 0 failure, 0 error, **0 skipped**.
+- Smoke test su Paper: voce del Task 9.
+- `map.md`: nessuna voce ⏳ residua.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Login di un giocatore reale non verificato (serve un client).
+- Avvisi WSREP/1243 di Flyway all'avvio (cosmetici, vedi Task 9).
 
 ---
 

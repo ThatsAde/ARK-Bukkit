@@ -3,7 +3,7 @@
 > **Scopo:** sapere sempre *dove* sta una cosa, *a cosa serve*, *chi la usa* e *quando va toccata*, senza esplorare il codice a tentoni.
 > **Regola:** ogni modifica al codice aggiorna questa mappa nello stesso commit (vedi `CLAUDE.md` §1).
 >
-> Legenda stato: ✅ esiste nel codice · ⏳ da creare (indicato il task del piano M0 `docs/superpowers/plans/2026-10-21-m0-scheletro.md`) · 🔁 esiste ma il task indicato la modifica.
+> Legenda stato: ✅ esiste nel codice · ⏳ da creare (indicato il task del piano in corso, in `docs/superpowers/plans/`) · 🔁 esiste ma il task indicato la modifica.
 > Percorsi Java abbreviati: `api/` = `core-api/src/main/java/org/breachsmp/core/api/`, `domain/` = `core-domain/src/main/java/org/breachsmp/core/domain/`, `platform/` = `core-platform/src/main/java/org/breachsmp/core/platform/`. I test stanno nello stesso package sotto `src/test/java/`.
 
 ---

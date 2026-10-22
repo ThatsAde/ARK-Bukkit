@@ -7,7 +7,7 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 | Milestone | Stato | Piano | Dipende da | Definition of Done (spec) |
 | --- | --- | --- | --- | --- |
 | **M0** Scheletro | ✅ completata (2026-10-22) | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
-| **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | 📝 pianificata in due parti | `plans/2026-10-22-m1a-piattaforma.md`, `plans/2026-10-22-m1b-ledger.md` | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
+| **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | 🟡 M1a completata (piattaforma), M1b in corso | `plans/2026-10-22-m1a-piattaforma.md`, `plans/2026-10-22-m1b-ledger.md` | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
 | **M2** Claim, Tool Cupboard, tier, protezione eventi | ⏳ | – | M0 | Nessun danno esterno sui claim; indice spaziale entro budget |
 | **M3** Oggetti, Breach Core, gate, blast, shield | ⏳ | – | M1, M2 | Test di dupe superato; raid completo su base di prova |
 | **M4** Mailbox, Mercato, escrow | ⏳ | – | M1, M3 | Vendita di un Core con trasferimento atomico |
