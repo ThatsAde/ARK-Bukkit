@@ -10,8 +10,30 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 2 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 3 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 2 – versioni M1, IT serializzati, TestDatabase nei testFixtures
+
+**Cosa**
+- Catalogo: jqwik `1.9.2` → `1.10.1` (allineata a JUnit Platform 1.14.4; la 1.10.2 ha meno di 2 settimane), aggiunta Caffeine `3.3.0` (usate in M1b).
+- Build service `ItDatabaseLock` (`maxParallelUsages = 1`) usato da tutti i task `Test`: con più progetti gli IT non si contendono lo schema `breach_it`.
+- `core-platform` applica `java-test-fixtures`; `TestDatabase` spostato in `src/testFixtures/.../testkit/` (pubblico) con il nuovo `migrated()`; nuovo `MutableClock`; `TestDatabaseTest` spostato nel package `testkit`.
+
+**File**
+- `gradle/libs.versions.toml`, `build-logic/src/main/kotlin/ItDatabaseLock.kt` (nuovo), `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts`, `core-platform/build.gradle.kts`, `core-platform/src/testFixtures/java/org/breachsmp/core/platform/testkit/{TestDatabase,MutableClock}.java`, `core-platform/src/test/java/org/breachsmp/core/platform/testkit/TestDatabaseTest.java`, `.../db/MigratorIT.java`; `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat clean build` con `BREACH_IT_*` → `BUILD SUCCESSFUL`; 73 test, 0 skipped, 0 failure.
+- Senza variabili: `.\gradlew.bat :core-platform:test` → verde, `MigratorIT` tests=3 skipped=3.
+
+**Decisioni**
+- Nessuna nuova (D-22 già registrata nel Task 1).
+
+**Aperto**
+- `TestDatabase.migrated()` sarà esercitato dagli IT dei Task 4–6.
 
 ---
 

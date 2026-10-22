@@ -1,6 +1,7 @@
 package org.breachsmp.core.platform.db;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.breachsmp.core.platform.testkit.TestDatabase;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

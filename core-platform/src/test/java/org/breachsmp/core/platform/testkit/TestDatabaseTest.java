@@ -1,4 +1,4 @@
-package org.breachsmp.core.platform.db;
+package org.breachsmp.core.platform.testkit;
 
 import org.junit.jupiter.api.Test;
 

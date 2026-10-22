@@ -1,7 +1,9 @@
-package org.breachsmp.core.platform.db;
+package org.breachsmp.core.platform.testkit;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.breachsmp.core.platform.db.Migrator;
+import org.flywaydb.core.Flyway;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.MariaDBContainer;
 
@@ -16,11 +18,11 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * <p>
  * I test svuotano lo schema con Flyway {@code clean}: per sicurezza lo schema esterno deve finire con {@code _it}.
  */
-final class TestDatabase {
+public final class TestDatabase {
 
-    static final String URL_ENV = "BREACH_IT_JDBC_URL";
-    static final String USER_ENV = "BREACH_IT_DB_USER";
-    static final String PASSWORD_ENV = "BREACH_IT_DB_PASSWORD";
+    public static final String URL_ENV = "BREACH_IT_JDBC_URL";
+    public static final String USER_ENV = "BREACH_IT_DB_USER";
+    public static final String PASSWORD_ENV = "BREACH_IT_DB_PASSWORD";
 
     private static MariaDBContainer<?> container;
 
@@ -28,7 +30,7 @@ final class TestDatabase {
     }
 
     /** Apre un pool sul database di test, oppure salta il test se non ce n'è uno. */
-    static HikariDataSource open() {
+    public static HikariDataSource open() {
         HikariConfig config = new HikariConfig();
         String url = System.getenv(URL_ENV);
         if (url != null && !url.isBlank()) {
@@ -48,8 +50,16 @@ final class TestDatabase {
         return new HikariDataSource(config);
     }
 
+    /** Pool su uno schema vuoto con tutte le migrazioni applicate. Per gli IT che non testano le migrazioni stesse. */
+    public static HikariDataSource migrated() {
+        HikariDataSource dataSource = open();
+        Flyway.configure().dataSource(dataSource).cleanDisabled(false).load().clean();
+        new Migrator(dataSource, TestDatabase.class.getClassLoader()).migrate();
+        return dataSource;
+    }
+
     /** {@code true} se il nome dello schema nell'URL JDBC finisce con {@code _it}. */
-    static boolean isDisposableSchema(String jdbcUrl) {
+    public static boolean isDisposableSchema(String jdbcUrl) {
         String rest = jdbcUrl.substring(jdbcUrl.indexOf("//") + 2);
         int slash = rest.indexOf('/');
         if (slash < 0) {

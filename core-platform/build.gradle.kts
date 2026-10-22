@@ -2,6 +2,7 @@ import java.util.zip.ZipFile
 
 plugins {
     id("breach.java-conventions")
+    `java-test-fixtures`
     alias(libs.plugins.shadow)
     alias(libs.plugins.runpaper)
 }
@@ -27,6 +28,13 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.testcontainers.junit)
     testImplementation(libs.testcontainers.mariadb)
+
+    // TestDatabase e MutableClock condivisi con i test dei module-* (D-22)
+    testFixturesApi(libs.hikaricp)
+    testFixturesImplementation(libs.flyway.core)
+    testFixturesImplementation(libs.testcontainers.mariadb)
+    testFixturesImplementation(platform(libs.junit.bom))
+    testFixturesImplementation(libs.junit.jupiter)
 }
 
 tasks {

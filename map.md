@@ -41,11 +41,11 @@ module-*        (futuri: solo core-api [+ core-domain])
 | --- | --- | --- | --- |
 | `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)` dei moduli | Aggiunta di un nuovo progetto Gradle |
 | `gradle.properties` | ✅ | parallel, caching, `-Xmx2G` | Raramente |
-| `gradle/libs.versions.toml` | ✅ | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
-| `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()`; `BREACH_IT_JDBC_URL` come input dei task `Test` (D-13: niente esito "saltato" ripreso dalla cache) | Regole comuni a tutti i moduli |
+| `gradle/libs.versions.toml` | ✅ | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers, jqwik 1.10.1, Caffeine 3.3.0) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
+| `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()`; `BREACH_IT_JDBC_URL` come input dei task `Test` (D-13: niente esito "saltato" ripreso dalla cache); ogni task `Test` usa il build service `ItDatabaseLock` (`build-logic/src/main/kotlin/ItDatabaseLock.kt`, `maxParallelUsages = 1`, D-22): un solo task Test alla volta nella build | Regole comuni a tutti i moduli |
 | `core-api/build.gradle.kts` | ✅ | solo JUnit (dal catalogo) + `junit-platform-launcher` | Mai aggiungere Paper qui |
 | `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit | Mai aggiungere Paper o librerie I/O |
-| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
+| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), plugin `java-test-fixtures` (`testFixturesApi(hikaricp)`, Flyway, Testcontainers, JUnit), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
@@ -182,14 +182,17 @@ Impostazioni Hikari: nome pool `breach-db`, driver `org.mariadb.jdbc.Driver`, `m
 
 Test: `DataSourceFactoryTest` (unit), `MigratorIT` (integrazione, DB da `TestDatabase`), `TestDatabaseTest`.
 
-**`TestDatabase`** (solo sorgenti di test, `platform/db/`, D-13): punto unico da cui ogni `*IT` ottiene MariaDB.
+**`TestDatabase`** (testFixtures di `core-platform`: `core-platform/src/testFixtures/java/org/breachsmp/core/platform/testkit/`, D-13/D-22): punto unico da cui ogni `*IT` ottiene MariaDB. I `module-*` lo usano con `testImplementation(testFixtures(project(":core-platform")))`.
 
 | Metodo | A cosa serve |
 | --- | --- |
+| `static HikariDataSource migrated()` | `open()` + Flyway `clean` + tutte le migrazioni (`Migrator`): per gli IT che non testano le migrazioni |
 | `static HikariDataSource open()` | DB esterno se `BREACH_IT_JDBC_URL` (+ `BREACH_IT_DB_USER`, `BREACH_IT_DB_PASSWORD`) è impostata; altrimenti container `mariadb:11.4` condiviso (Testcontainers) se c'è Docker; altrimenti `assumeTrue` → test saltato. Schema esterno non `*_it` → `IllegalStateException` |
 | `static boolean isDisposableSchema(String jdbcUrl)` | `true` se lo schema dell'URL finisce con `_it` (i test fanno Flyway `clean`) |
 
-Quando toccarlo: nuovi IT (anche di `module-*`: se servirà fuori da `core-platform`, spostarlo in un `testFixtures`). Chi scrive un IT: `dataSource = TestDatabase.open()` in `@BeforeEach`, `close()` null-guardato in `@AfterEach`.
+Quando toccarlo: nuovi IT. Chi scrive un IT: `dataSource = TestDatabase.migrated()` (o `open()` per testare le migrazioni) in `@BeforeEach`, `close()` null-guardato in `@AfterEach`.
+
+**`MutableClock`** (stesso package `testkit`): `Clock` in UTC controllabile nei test – `MutableClock(LocalDateTime start)`, `set(LocalDateTime)`, `advance(Duration)`.
 
 ### `platform/concurrent/PlatformExecutors.java` ✅
 Implementa `CoreExecutors` e `AutoCloseable`.
