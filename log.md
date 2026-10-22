@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 6 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 7 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 6 – job pianificati con lease
+
+**Cosa**
+- `JdbcJobScheduler` (implementa `JobScheduler`): registrazione prima dell'avvio, `start` (righe mancanti in `scheduled_job` + controllo ogni 60 s sul timer), `tick` con lease di 10 minuti via `UPDATE` condizionato, rilascio con esito e prossima esecuzione, `healthLines` con l'ultimo job.
+
+**File**
+- `core-platform/.../job/JdbcJobScheduler.java`; test `JdbcJobSchedulerIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test --tests "*JdbcJobSchedulerIT"` → `cannot find symbol JdbcJobScheduler`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 100 test, 0 skipped; `JdbcJobSchedulerIT` 6/6 (incluso: due scheduler in parallelo sullo stesso job → una sola esecuzione).
+
+**Decisioni**
+- Nessuna nuova. Aggiunta rispetto al piano: se al rilascio il lease non è più nostro (job durato oltre 10 minuti e preso da un altro processo) si logga un WARNING.
+
+**Aperto**
+- Un job che dura più del lease può essere eseguito due volte da processi diversi: i job devono restare idempotenti (lo sono per costruzione: chiavi deterministiche).
 
 ---
 

@@ -131,7 +131,7 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `season/SeasonService` | `currentSeasonId()` | `platform/season/CurrentSeason` ✅ |
 | `audit/AuditEntry`, `AuditService` | Audit append-only: `record` (async), `recordNow` (bloccante, solo da thread DB/login) | `platform/audit/JdbcAuditService` ✅ |
 | `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ✅ |
-| `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ⏳ Task 6 |
+| `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ✅ |
 | `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation` | Tipi neutri per i comandi: righe con tono, avvisi ad altri giocatori, mittente (`senderId` null = console), permessi extra | – |
 | `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ⏳ Task 8 |
 | `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ⏳ Task 7 |
@@ -235,6 +235,20 @@ Test: `CurrentSeasonIT`, `JdbcPlayerServiceIT`, `JdbcAuditServiceIT` (MariaDB re
 | `TunableChange` (record) | `now` (`TunableView`), `previous` | – |
 
 Test: `TunableRegistryTest` (senza DB), `TunableRegistryIT`.
+
+### `platform/job/JdbcJobScheduler.java` ✅ (M1a Task 6)
+Implementa `JobScheduler` su `scheduled_job` con lease (spec §9, E19).
+
+| Metodo | A cosa serve |
+| --- | --- |
+| `JdbcJobScheduler(DataSource, Executor db, Clock, String processId, Logger)` | `processId` finisce in `locked_by` |
+| `static String newProcessId()` | `"breach-" + UUID` |
+| `register(jobId, nextRun, job)` | Solo prima di `start` (poi `IllegalStateException`); id 1–64 caratteri, unico |
+| `start(ScheduledExecutorService timer)` | Bloccante: `INSERT … ON DUPLICATE KEY UPDATE job_id = job_id` (un job esistente mantiene `next_run_at`), poi controllo ogni 60 s sul timer → lavoro sul thread DB |
+| `List<String> tick()` | Per ogni job: lease con `UPDATE … WHERE next_run_at <= now AND (locked_until IS NULL OR locked_until < now)` (lease 10 min); se preso esegue, poi rilascia con `last_run_at`, `last_status` (`OK`/`FAILED`), `last_error` (≤ 255) e il prossimo `next_run_at`. Restituisce gli id eseguiti |
+| `List<String> healthLines()` | `Ultimo job: <id> <yyyy-MM-dd HH:mm:ss> <stato> [(<errore>)]`, `Ultimo job: nessuno` o `non disponibile` |
+
+Le date sono `LocalDateTime.now(clock)` (ora locale del server). Test: `JdbcJobSchedulerIT` (due processi → una sola esecuzione; lease scaduto ripreso; job fallito registrato).
 
 ### `platform/concurrent/PlatformExecutors.java` ✅
 Implementa `CoreExecutors` e `AutoCloseable`.
