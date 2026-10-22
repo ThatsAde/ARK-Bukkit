@@ -428,3 +428,8 @@ Test: `JdbcLedgerServiceIT` (11: movimenti ed entry, saldo insufficiente senza t
 
 Test: `EconomyAdminIT` (8).
 
+### `economy/recon/ReconciliationJob.java` ✅ (M1b Task 8, DoD)
+Implementa `Job` (id `economy.reconciliation`, registrato ogni notte all'ora del tunable `economy.recon_hour` con `Schedules.nextDaily`). `runNow()` (bloccante, thread DB): in **una** transazione di sola lettura (stessa fotografia REPEATABLE READ) trova i conti con `balance ≠ SUM(ledger_entry.delta)` e la somma di tutti i saldi della stagione; per ogni discrepanza log SEVERE + audit `RECON_MISMATCH {account, stored, computed}`; conto non di sistema → congelato (`AccountDao.setFrozen`); somma ≠ 0 → SEVERE + audit `RECON_TOTAL`. `lastReport()`, `systemProblem()` (discrepanza su conto di sistema o somma ≠ 0 → modulo DEGRADED, E14), `healthLines()` (`Riconciliazione: mai eseguita | OK (<n> conti, dd/MM HH:mm) | <k> discrepanze (…)[, somma saldi <x>]`). Record `Mismatch(accountId, account, stored, computed)`, `Report(at, accounts, totalBalance, mismatches)` con `clean()`.
+
+Test: `ReconciliationIT` (4: pulito, giocatore manomesso → congelato e `/pay` bloccato, conto di sistema manomesso → non congelato ma `systemProblem`, job eseguito dallo scheduler alle 04:00).
+

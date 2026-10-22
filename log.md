@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 8 (riconciliazione).
+- **Prossimo passo:** M1b Task 9 (login economico, `/balance`, `/pay`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1b – Task 8 – riconciliazione notturna (DoD M1)
+
+**Cosa**
+- `ReconciliationJob` (`Job`): ricalcolo dei saldi dalle entry e somma dei saldi in un'unica fotografia di sola lettura; giocatore manomesso → congelato + audit `RECON_MISMATCH`; conto di sistema → solo alert e `systemProblem()` (DEGRADED); somma ≠ 0 → audit `RECON_TOTAL`; righe per `/breach health`.
+
+**File**
+- `module-economy/src/main/java/org/breachsmp/core/economy/recon/ReconciliationJob.java`; test `recon/ReconciliationIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :module-economy:test --tests "*ReconciliationIT"` → `cannot find symbol ReconciliationJob`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 164 test, 0 skipped; `ReconciliationIT` 4/4: saldo di un giocatore aumentato di 100 fuori dal ledger → rilevato (600 contro 500), conto congelato, `/pay` rifiutato con `AccountFrozenException`; job eseguito da `JdbcJobScheduler` alle 04:00 del giorno dopo.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 
