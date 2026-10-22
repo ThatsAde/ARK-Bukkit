@@ -445,3 +445,18 @@ Test: `ReconciliationIT` (4: pulito, giocatore manomesso → congelato e `/pay` 
 
 Test: `PayCommandTest` (6), `BalanceCommandTest` (2) con servizi finti (`command/Fakes`); `EconomyLoginIT` (2).
 
+### `economy/command/` – staff ✅ (M1b Task 10)
+Sottocomandi di `/breach` registrati con `CommandRegistry.registerAdmin`. Parsing sincrono in `AdminArgs` (errori = `IllegalArgumentException` con il testo per lo staff), poi `findByName` e l'operazione di `EconomyAdmin`. Actor = mittente (console = `null`).
+
+| Classe | Comando | Permesso |
+| --- | --- | --- |
+| `EcoSubcommand` | `/breach eco <give\|take> <giocatore> <importo> <motivo>` → `Dati/Tolti <importo> a <nome> (tx #N).` | `breach.admin.eco` |
+| `TxSubcommand` | `/breach tx <giocatore> [pagina]` → intestazione + `#id dd/MM HH:mm KIND ±importo → saldo` o `Nessun movimento.` | `breach.admin.tx` |
+| `RollbackSubcommand` | `/breach rollback tx <id> <motivo>` → `Rollback eseguito: tx #N annulla #id.` / WARNING se già eseguito | `breach.admin.rollback` |
+| `FreezeSubcommand(boolean)` | `/breach freeze <giocatore> <motivo>`, `/breach unfreeze <giocatore> <motivo>` | `breach.admin.freeze` |
+| `ReconSubcommand` | `/breach recon`: riconciliazione subito sul pool DB (D-27) | `breach.admin.recon` |
+| `AdminArgs` | `eco`, `rollback`, `target`, `page`, `reason` (1–200 caratteri) | – |
+| `AdminCommands` | Helper: `done`, `withPlayer` (giocatore non trovato → errore), `playersByPrefix` | – |
+
+Test: `AdminArgsTest` (4). Il comportamento sul DB delle operazioni è coperto da `EconomyAdminIT`.
+
