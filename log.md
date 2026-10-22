@@ -10,8 +10,29 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 4 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 5 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 4 – stagione, profilo giocatore, audit (V002, V003)
+
+**Cosa**
+- Migrazioni V002 (`season`, `current_season` con stagione 1, indice `ix_player_name`) e V003 (`audit_log`, `tunable`, `scheduled_job`).
+- `CurrentSeason.load` (fail-closed se manca la stagione corrente), `JdbcPlayerService` (upsert al login, ricerca per nome senza maiuscole, il più recente vince), `JdbcAuditService` (async, bloccante e `insert` sulla connessione del chiamante).
+
+**File**
+- `core-platform/src/main/resources/db/migration/V002__platform_season.sql`, `V003__platform_audit_tunable_job.sql`; `core-platform/.../season/CurrentSeason.java`, `.../player/JdbcPlayerService.java`, `.../audit/JdbcAuditService.java`; test `CurrentSeasonIT`, `JdbcPlayerServiceIT`, `JdbcAuditServiceIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test` → `compileTestJava` fallito, `cannot find symbol` (le tre classi).
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 89 test, 0 skipped; `CurrentSeasonIT` 2, `JdbcPlayerServiceIT` 2, `JdbcAuditServiceIT` 2, `MigratorIT` 3 (ora 3 migrazioni) su MariaDB 11.4.13.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 

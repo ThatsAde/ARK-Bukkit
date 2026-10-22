@@ -126,10 +126,10 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `util/IdemKeys` | `of(String)` → UUID v3 deterministico per chiavi di job/rollback (E15) | – |
 | `util/JsonText` | `write(Map<String,?>)` → JSON piatto (testo, interi, booleani, null; niente decimali) per `audit_log.detail` e `ledger_tx.meta` | – |
 | `player/PlayerProfile` (record) | `uuid, name, firstSeen, lastSeen` | – |
-| `player/PlayerService` | `findByName` (senza maiuscole, il più recente), `find(uuid)`; future sul thread DB | `platform/player/JdbcPlayerService` ⏳ Task 4 |
+| `player/PlayerService` | `findByName` (senza maiuscole, il più recente), `find(uuid)`; future sul thread DB | `platform/player/JdbcPlayerService` ✅ |
 | `player/PlayerHooks`, `LoginHook`, `QuitHook` | Hook dei moduli: login sul thread asincrono (I/O ok, eccezione = rifiuto), uscita sul main (niente I/O) | `platform/player/PlayerHookRegistry` ⏳ Task 7 |
-| `season/SeasonService` | `currentSeasonId()` | `platform/season/CurrentSeason` ⏳ Task 4 |
-| `audit/AuditEntry`, `AuditService` | Audit append-only: `record` (async), `recordNow` (bloccante, solo da thread DB/login) | `platform/audit/JdbcAuditService` ⏳ Task 4 |
+| `season/SeasonService` | `currentSeasonId()` | `platform/season/CurrentSeason` ✅ |
+| `audit/AuditEntry`, `AuditService` | Audit append-only: `record` (async), `recordNow` (bloccante, solo da thread DB/login) | `platform/audit/JdbcAuditService` ✅ |
 | `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ⏳ Task 5 |
 | `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ⏳ Task 6 |
 | `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation` | Tipi neutri per i comandi: righe con tono, avvisi ad altri giocatori, mittente (`senderId` null = console), permessi extra | – |
@@ -216,6 +216,16 @@ Quando toccarlo: nuovi IT. Chi scrive un IT: `dataSource = TestDatabase.migrated
 
 **`MutableClock`** (stesso package `testkit`): `Clock` in UTC controllabile nei test – `MutableClock(LocalDateTime start)`, `set(LocalDateTime)`, `advance(Duration)`.
 
+### `platform/season/`, `platform/player/`, `platform/audit/` ✅ (M1a Task 4)
+
+| Classe | Ruolo | Metodi |
+| --- | --- | --- |
+| `CurrentSeason` (record, implementa `SeasonService`) | Stagione corrente | `static CurrentSeason load(DataSource)`: bloccante, solo all'avvio; `current_season` vuota → `IllegalStateException` (fail-closed) |
+| `JdbcPlayerService` (implementa `PlayerService`) | Tabella `player` | `JdbcPlayerService(DataSource, Executor db, Clock)`; `void upsert(UUID, String)` bloccante (login): `INSERT … ON DUPLICATE KEY UPDATE name, last_seen`; `findByName` (`ORDER BY last_seen DESC LIMIT 1`, collation `_ci`), `find(uuid)` sul thread DB |
+| `JdbcAuditService` (implementa `AuditService`) | Tabella `audit_log`, append-only | `JdbcAuditService(DataSource, Executor db, Clock)`; `record`/`recordNow`; `static void insert(Connection, AuditEntry, Instant)` per scrivere nella transazione del chiamante |
+
+Test: `CurrentSeasonIT`, `JdbcPlayerServiceIT`, `JdbcAuditServiceIT` (MariaDB reale via `TestDatabase.migrated()`).
+
 ### `platform/concurrent/PlatformExecutors.java` ✅
 Implementa `CoreExecutors` e `AutoCloseable`.
 
@@ -280,5 +290,7 @@ Migrazioni applicate (aggiorna a ogni nuova migrazione):
 | Versione | File | Modulo | Contenuto |
 | --- | --- | --- | --- |
 | V001 | `V001__platform_create_player.sql` | platform | `player(uuid, name, first_seen, last_seen, flags)` |
+| V002 | `V002__platform_season.sql` | platform | `season(id, name, started_at, ended_at)`, `current_season(singleton=1, season_id)` con stagione 1, indice `ix_player_name` |
+| V003 | `V003__platform_audit_tunable_job.sql` | platform | `audit_log(id, at, actor, action, subject, detail JSON)`, `tunable(tkey, value, updated_at, updated_by)`, `scheduled_job(job_id, next_run_at, locked_by, locked_until, last_run_at, last_status, last_error)` |
 
 Test di risorse: `PluginYmlTest` (Task 9) verifica che `main` punti a `ARKPlugin` e che la versione sia stata espansa.
