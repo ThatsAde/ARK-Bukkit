@@ -433,3 +433,15 @@ Implementa `Job` (id `economy.reconciliation`, registrato ogni notte all'ora del
 
 Test: `ReconciliationIT` (4: pulito, giocatore manomesso → congelato e `/pay` bloccato, conto di sistema manomesso → non congelato ma `systemProblem`, job eseguito dallo scheduler alle 04:00).
 
+### `economy/` (radice) e `economy/command/` – giocatore ✅ (M1b Task 9)
+
+| Classe | Ruolo |
+| --- | --- |
+| `EconomyTunables` (record) | `register(TunableService)`: `economy.starting_balance` (0, [0, 100000000]), `economy.transfer_fee_bp` (0, [0, 5000]), `economy.pay_rate_per_minute` (10, [1, 1000]), `economy.recon_hour` (4, [0, 23]) (D-32) |
+| `EconomyLogin` (`LoginHook`, `QuitHook`) | Login (bloccante): `ensure` del conto, `STARTING_BALANCE` FAUCET → giocatore con chiave `start:<stagione>:<uuid>` se il tunable è > 0 (D-24), `balanceNow` per precaricare la cache. Uscita: `cache.evict` + `limiter.forget` |
+| `command/PayCommand` (`ModuleCommand`) | `/pay <giocatore> <importo>`, `breach.pay`, solo giocatori. Sincrono: 2 argomenti, `Money.parse`, minimo 1 moneta, rate limit. Poi: `findByName` (non trovato / sé stesso → errore), `FeePolicy.split` con `economy.transfer_fee_bp`, gambe pagatore −importo, destinatario +netto, TAX_POOL +tassa; chiave casuale (E9); `PlayerLock.withLock(pagatore, …)`. Successo: riga al pagatore (+ riga MUTED con la tassa) e `Notice` al destinatario |
+| `command/BalanceCommand` (`ModuleCommand`) | `/balance` (`/bal`), `breach.balance`; con un argomento serve `breach.balance.others` (extra permission); dalla console solo con il nome |
+| `command/EconomyMessages` | `failure(error, self)`: saldo insufficiente / conto congelato (proprio o di destinazione) / rollback rifiutato / richiesta non valida; ogni altro errore → "Esito incerto … controlla il saldo con /balance" (può essere un errore durante il commit) |
+
+Test: `PayCommandTest` (6), `BalanceCommandTest` (2) con servizi finti (`command/Fakes`); `EconomyLoginIT` (2).
+
