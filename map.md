@@ -130,7 +130,7 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `player/PlayerHooks`, `LoginHook`, `QuitHook` | Hook dei moduli: login sul thread asincrono (I/O ok, eccezione = rifiuto), uscita sul main (niente I/O) | `platform/player/PlayerHookRegistry` ⏳ Task 7 |
 | `season/SeasonService` | `currentSeasonId()` | `platform/season/CurrentSeason` ✅ |
 | `audit/AuditEntry`, `AuditService` | Audit append-only: `record` (async), `recordNow` (bloccante, solo da thread DB/login) | `platform/audit/JdbcAuditService` ✅ |
-| `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ⏳ Task 5 |
+| `tunable/Tunable`, `TunableService` | `registerLong(key, default, min, max, descrizione)` in `onLoad`; `get()` in memoria | `platform/tunable/TunableRegistry` ✅ |
 | `job/Job`, `NextRun`, `JobScheduler` | `register(jobId, nextRun, job)`: job sul thread DB con lease | `platform/job/JdbcJobScheduler` ⏳ Task 6 |
 | `command/Tone`, `ChatLine`, `Notice`, `CommandResult`, `CommandInvocation` | Tipi neutri per i comandi: righe con tono, avvisi ad altri giocatori, mittente (`senderId` null = console), permessi extra | – |
 | `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ⏳ Task 8 |
@@ -225,6 +225,16 @@ Quando toccarlo: nuovi IT. Chi scrive un IT: `dataSource = TestDatabase.migrated
 | `JdbcAuditService` (implementa `AuditService`) | Tabella `audit_log`, append-only | `JdbcAuditService(DataSource, Executor db, Clock)`; `record`/`recordNow`; `static void insert(Connection, AuditEntry, Instant)` per scrivere nella transazione del chiamante |
 
 Test: `CurrentSeasonIT`, `JdbcPlayerServiceIT`, `JdbcAuditServiceIT` (MariaDB reale via `TestDatabase.migrated()`).
+
+### `platform/tunable/` ✅ (M1a Task 5)
+
+| Classe | Ruolo | Metodi |
+| --- | --- | --- |
+| `TunableRegistry` (implementa `TunableService`) | Tunable interi (D-17) in memoria + tabella `tunable` | `TunableRegistry(DataSource, Executor db, Clock, Logger)`; `registerLong` (chiave `[a-z][a-z0-9_.]{0,63}`, default in [min, max], duplicato → `IllegalStateException`); `reload()` bloccante (assente → default, valore non valido → default + WARNING; usato all'avvio, fail-closed); `reloadQuietly()` (timer ogni 30 s); `CompletableFuture<TunableChange> set(key, raw, actor)`: valida, poi upsert + audit `TUNABLE_SET {old,new}` nella **stessa** transazione (D-18); `list()` ordinata per chiave; `find(key)` |
+| `TunableView` (record) | `key, value, defaultValue, min, max, description` | – |
+| `TunableChange` (record) | `now` (`TunableView`), `previous` | – |
+
+Test: `TunableRegistryTest` (senza DB), `TunableRegistryIT`.
 
 ### `platform/concurrent/PlatformExecutors.java` ✅
 Implementa `CoreExecutors` e `AutoCloseable`.

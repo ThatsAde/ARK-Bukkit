@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger, divisa in due piani: `docs/superpowers/plans/2026-10-22-m1a-piattaforma.md` (10 task) e `docs/superpowers/plans/2026-10-22-m1b-ledger.md` (12 task). Nessun codice di M1 scritto.
-- **Prossimo passo:** M1a Task 5 (branch `m1-ledger`).
+- **Prossimo passo:** M1a Task 6 (branch `m1-ledger`).
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-22 – M1a – Task 5 – tunable modificabili a caldo
+
+**Cosa**
+- `TunableRegistry` (implementa `TunableService`): registrazione validata, `reload`/`reloadQuietly`, `set` con upsert e audit `TUNABLE_SET` nella stessa transazione, `list`/`find`. Record `TunableView`, `TunableChange`.
+
+**File**
+- `core-platform/.../tunable/{TunableRegistry,TunableView,TunableChange}.java`; test `TunableRegistryTest`, `TunableRegistryIT`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-platform:test --tests "*Tunable*"` → `cannot find symbol TunableRegistry`.
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 94 test, 0 skipped; `TunableRegistryTest` 2, `TunableRegistryIT` 3 (incluso il rifiuto di `abc`, `5001`, `-1`, `1.5`, vuoto e chiave sconosciuta senza scritture né audit).
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 
