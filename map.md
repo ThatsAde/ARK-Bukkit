@@ -211,6 +211,15 @@ Chi lo chiama: `ModuleRegistry.load`. Test: `DependencyResolverTest`.
 
 Test: `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest`, `SchedulesTest`.
 
+### `domain/territory/` – territorio (M2a)
+
+| Classe | Metodi | Chi la usa |
+| --- | --- | --- |
+| `ClaimBox` (record) ✅ Task 3 | `(world UUID, x, y, z, radius)` del cupboard; `contains(world, x, y, z)` cubo; `intersects(other, gap)` = stessi mondo e `|d| <= r1 + r2 + gap` su ogni asse; `squaredDistance(x, y, z)` | `ClaimIndex`, `ClaimService` |
+| `ClaimIndex<T>` ✅ Task 3 | Bucket per chunk (porta ToolCupboards): `add(claim, box)` (duplicato → `IllegalStateException`), `remove(claim)`, `covering(world, x, y, z)` dal più vicino al cupboard, `overlapping(box, gap)`, `size()`. Non thread-safe: solo main thread | `ClaimService` |
+
+Test: `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest` (5.000 claim, 200.000 lookup: deve restare sotto 50 µs di media; misurato 360 ns).
+
 **Test di proprietà (jqwik, DoD M1)** – `core-domain/src/test/.../economy/LedgerProperties` + helper `InMemoryLedger` (stesse regole del ledger JDBC: `validate` → ordine per id → `balancesAfter`): 300 sequenze casuali fino a 200 operazioni (give, pay con tassa, take) → somma dei saldi sempre 0, nessun saldo negativo tranne FAUCET, una transazione rifiutata non cambia nulla; tassa = ceiling esatto; `Money.parse` legge ciò che un importo semplice dice.
 
 ---

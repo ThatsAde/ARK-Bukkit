@@ -10,8 +10,29 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 3.
+- **Prossimo passo:** M2a Task 4.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M2a – Task 3 – geometria e indice dei claim
+
+**Cosa**
+- `core-domain/territory`: `ClaimBox` (cubo attorno al cupboard, contenimento, intersezione con distanza minima, distanza dal cupboard) e `ClaimIndex<T>` (indice per chunk portato da ToolCupboards su coordinate intere, il più vicino vince).
+
+**File**
+- `core-domain/src/main/java/org/breachsmp/core/domain/territory/{ClaimBox,ClaimIndex}.java`; test `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-domain:test` → `cannot find symbol` (`ClaimBox`).
+- GREEN: `.\gradlew.bat :core-domain:test` → `BUILD SUCCESSFUL`; `ClaimBoxTest` 4, `ClaimIndexTest` 2, `ClaimIndexPerformanceTest` 1.
+- **Benchmark (budget spec §14 ≤ 50 µs):** 5.000 claim di raggio 16 su 4.000×4.000 blocchi, 200.000 lookup casuali → **media 360 ns**.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 
