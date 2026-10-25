@@ -27,5 +27,6 @@ include(
     "core-domain",
     "core-api",
     "core-platform",
+    "core-paper-api",
     "module-economy"
 )

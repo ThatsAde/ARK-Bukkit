@@ -12,6 +12,7 @@ import org.breachsmp.core.api.player.PlayerService;
 import org.breachsmp.core.api.season.SeasonService;
 import org.breachsmp.core.api.service.ServiceRegistry;
 import org.breachsmp.core.api.tunable.TunableService;
+import org.breachsmp.core.paper.PaperBridge;
 import org.breachsmp.core.platform.audit.JdbcAuditService;
 import org.breachsmp.core.platform.command.BreachCommand;
 import org.breachsmp.core.platform.command.CommandDelivery;
@@ -31,6 +32,7 @@ import org.breachsmp.core.platform.lock.SerialPlayerLock;
 import org.breachsmp.core.platform.module.DefaultModuleContext;
 import org.breachsmp.core.platform.module.ModuleCatalog;
 import org.breachsmp.core.platform.module.ModuleRegistry;
+import org.breachsmp.core.platform.paper.BukkitPaperBridge;
 import org.breachsmp.core.platform.player.JdbcPlayerService;
 import org.breachsmp.core.platform.player.LoginGate;
 import org.breachsmp.core.platform.player.PlayerHookRegistry;
@@ -126,6 +128,7 @@ public final class ARKPlugin extends JavaPlugin {
         services.register(PlayerHooks.class, hooks);
         services.register(CommandRegistry.class, commands);
         services.register(PlayerLock.class, new SerialPlayerLock());
+        services.register(PaperBridge.class, new BukkitPaperBridge(this));
 
         modules = new ModuleRegistry(logger);
         modules.load(ModuleCatalog.all(), config::moduleEnabled,

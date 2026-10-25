@@ -13,6 +13,7 @@ version = "1.0-SNAPSHOT"
 dependencies {
     implementation(project(":core-api"))
     implementation(project(":core-domain"))
+    implementation(project(":core-paper-api"))
     implementation(project(":module-economy"))
 
     implementation(libs.hikaricp)

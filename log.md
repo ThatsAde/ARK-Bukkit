@@ -9,9 +9,38 @@
 ## Stato attuale
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
-- **Milestone chiusa:** M1 – Ledger ✅ (2026-10-25), sul branch `m1-ledger` (non ancora unito a `main`).
-- **Prossimo passo:** revisione finale del branch `m1-ledger`, poi decidere come integrarlo; poi pianificare M2 (territorio) o il negozio server (M1-shop), a scelta dell'utente.
+- **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
+- **Prossimo passo:** M2a Task 2.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M2a – Task 1 – `core-paper-api` e `PaperBridge`
+
+**Cosa**
+- Nuovo progetto `core-paper-api` con `PaperBridge` (plugin, registrazione dei listener, cartella dati), implementato in `core-platform` da `BukkitPaperBridge` e registrato da `ARKPlugin` nel `ServiceRegistry`.
+- `breach.module-conventions` ammette `:core-paper-api`; `CLAUDE.md` §2 aggiornato.
+
+**File**
+- `core-paper-api/build.gradle.kts`, `core-paper-api/src/main/java/org/breachsmp/core/paper/PaperBridge.java`, `core-platform/.../paper/BukkitPaperBridge.java`, `ARKPlugin.java`, `settings.gradle.kts`, `core-platform/build.gradle.kts`, `build-logic/src/main/kotlin/breach.module-conventions.gradle.kts`, `CLAUDE.md`, `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 180 test, 0 skipped.
+- Prova negativa I7: `implementation(project(":core-platform"))` in `module-economy` → `I7: :module-economy non può dipendere da :core-platform in 'implementation' (ammessi solo :core-api, :core-domain e :core-paper-api)`; riga tolta.
+
+**Decisioni** (dal piano M2a)
+- **D-34** Nuovo progetto `core-paper-api` con `PaperBridge` (`plugin()`, `registerListener(Listener)`, `dataFolder()`), registrato dalla piattaforma. I `module-*` possono dipendere da `:core-paper-api` e da Paper `compileOnly` (aggiorna D-15 e D-21: resta vietato dipendere da `core-platform` o da altri moduli).
+- **D-35** Un claim rimosso si cancella dal DB (`claim` + `claim_member`); la storia sta in `audit_log` (`CLAIM_REMOVE`).
+- **D-36** Modifiche a claim, autorizzati e PIN: prima il DB, poi l'indice in memoria sul main. Alla creazione il claim è riservato subito nell'indice; se la scrittura fallisce la riserva si toglie e il cupboard torna al giocatore.
+- **D-37** PIN 4–8 cifre, PBKDF2WithHmacSHA256 60.000 iterazioni, sale 16 byte, verifica sul pool COMPUTE; tentativi limitati per giocatore e per claim (`territory.pin_attempts_per_10_min`, default 5); errori → `audit_log` `TC_PIN_FAILED`.
+- **D-38** Config del territorio in `plugins/BreachCore/territory.yml` (tier, materiali, porte, upgrade, item, ricette, mondi), validata fail-closed con tutti gli errori. Tunable: `territory.claim_radius` (16), `territory.claim_gap` (0), `territory.max_cupboards_per_player` (50), `territory.pin_attempts_per_10_min` (5). Il raggio si salva nel claim alla creazione.
+- **D-39** Registro "piazzato da un giocatore" nel PDC del chunk (`breachcore:placed`, `INTEGER_ARRAY` ordinato di posizioni impacchettate), con cache per i chunk caricati e PDC riscritto a ogni modifica.
+- **D-40** Nel DB il mondo è identificato dal suo UUID (`BINARY(16)`).
+- **D-41** In M2a il martello migliora solo blocchi pieni; porte, botole e cancelli hanno un tier ma non si migliorano. Il danno ai blocchi (e il suo azzeramento con l'upgrade) arriva con M2b.
+- **D-42** Blocco del cupboard: `BARREL` di default; l'interazione è sempre intercettata, il barile non si apre mai come contenitore.
+
+**Aperto**
+- Nessuno.
 
 ---
 
