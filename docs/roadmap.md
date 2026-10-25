@@ -7,7 +7,7 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 | Milestone | Stato | Piano | Dipende da | Definition of Done (spec) |
 | --- | --- | --- | --- | --- |
 | **M0** Scheletro | ✅ completata (2026-10-22) | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
-| **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | 🟡 M1a completata (piattaforma), M1b in corso | `plans/2026-10-22-m1a-piattaforma.md`, `plans/2026-10-22-m1b-ledger.md` | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
+| **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | ✅ completata (2026-10-25) | `plans/2026-10-22-m1a-piattaforma.md`, `plans/2026-10-22-m1b-ledger.md` | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
 | **M2** Claim, Tool Cupboard, tier, protezione eventi | ⏳ | – | M0 | Nessun danno esterno sui claim; indice spaziale entro budget |
 | **M3** Oggetti, Breach Core, gate, blast, shield | ⏳ | – | M1, M2 | Test di dupe superato; raid completo su base di prova |
 | **M4** Mailbox, Mercato, escrow | ⏳ | – | M1, M3 | Vendita di un Core con trasferimento atomico |
@@ -18,23 +18,19 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 | **M9** Pipeline di stagione | ⏳ | – | tutti | Reset di prova su staging con snapshot e rollback |
 | **M10** Store, ProductPolicy, Tebex | ⏳ | – | M4 | ArchUnit verde; acquisto di prova consegnato una sola volta |
 
-M0 è chiusa: smoke test su Paper 26.2 + MariaDB 11.4.13 superato il 2026-10-22 (vedi `log.md`).
+M0 è chiusa (2026-10-22). M1 è chiusa (2026-10-25): DoD verificata con test di proprietà, 1000 transazioni concorrenti e riconciliazione su MariaDB reale (vedi `log.md`).
 
 ---
 
 ## Note per pianificare ciascuna milestone
 
-### M1 – Ledger (spec §4, §5, §14 audit, §15)
-- Nuovo progetto `module-economy` (dipende da `core-api`); regole pure (validazione gambe, `FeePolicy`, `ceil(P*t/10000)`) in `core-domain`.
-- In `core-api`: `LedgerService`, `TxRequest`, `Leg`, `TxResult`, `AccountRef`, evento `LedgerTxCommitted`.
-- Migrazioni: `season` (+ `current_season`), `account`, `ledger_tx`, `ledger_entry`, `audit_log`, `tunable`.
-- Nuove librerie: **jqwik** (property test), **Caffeine** (cache saldi), forse **ArchUnit** (I7 ora che esiste un `module-*`).
-- Lock `SELECT ... FOR UPDATE` in ordine di id, retry deadlock ×3 con jitter, idempotenza su `idem_key`.
-- Caricamento in `AsyncPlayerPreLoginEvent`, fail-closed se il DB non risponde.
-- Il test "1000 tx concorrenti" è un test di integrazione: gira sul MariaDB portatile tramite `TestDatabase` (D-13), senza Docker.
-- Rischio §18: righe calde `SYS_SINK`/`SYS_TAX_POOL` → valutare shard dopo il test di concorrenza.
-- Aggiungere `ModuleContext` per registrare listener e comandi dei moduli (oggi solo la piattaforma registra `/breach`).
-- Primo job pianificato → introdurre `scheduled_job` con lease (spec §9) e "ultimo job" in `/breach health`.
+### M1 – Ledger ✅ (spec §4, §5, §14 audit, §15)
+- Fatto: piattaforma (stagione, profilo, audit, tunable, job con lease, PlayerLock, login fail-closed, comandi dei moduli senza Bukkit) e `module-economy` (ledger JDBC, `/balance`, `/pay`, `/breach eco|tx|rollback|freeze|unfreeze|recon`, riconciliazione notturna). Dettagli in `log.md` e `map.md` §8.
+- Rischio §18 (righe calde): con lock ordinati 1100 invii concorrenti → 0 retry per deadlock; shard non necessari ora, da rivalutare con il test di carico su staging.
+
+### M1-shop – Negozio server (prossima milestone economica, design M1 §3)
+- Il negozio che compra materiali da farm con prezzo decrescente è la fonte principale di denaro (GDD §3): GUI e curve di prezzo proprie, sopra `LedgerService` (`SYS_FAUCET → giocatore`).
+- Prima: brainstorming del design (curve, cap per giocatore/giorno, anti-farm) e un nuovo tipo di transazione in `TxKinds`.
 
 ### M2 – Territorio (spec §6)
 - Indice spaziale `chunkKey → claims`, AABB; budget lookup ≤ 50 µs (benchmark).
@@ -48,6 +44,7 @@ M0 è chiusa: smoke test su Paper 26.2 + MariaDB 11.4.13 superato il 2026-10-22 
 
 ### M4 – Mailbox, Mercato, escrow
 - Escrow su `SYS_ESCROW`; item ricreato dal DB all'acquirente nella stessa transazione ledger.
+- Da decidere qui (D-33): servono plugin di negozio di terze parti (Vault/ChestShop) o basta il Mercato interno? L'API di Vault è sincrona sul main thread (in conflitto con I2/I3).
 
 ### M5 – Extraction (spec §8)
 - `zone_cycle`, `extraction_session`, `extraction_point`, `zone_supply`, `loot_spawn`, `loot_event`; scambio del mondo template.

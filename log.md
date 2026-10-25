@@ -9,9 +9,34 @@
 ## Stato attuale
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
-- **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 12 (chiusura di M1), poi revisione finale del branch `m1-ledger`.
+- **Milestone chiusa:** M1 – Ledger ✅ (2026-10-25), sul branch `m1-ledger` (non ancora unito a `main`).
+- **Prossimo passo:** revisione finale del branch `m1-ledger`, poi decidere come integrarlo; poi pianificare M2 (territorio) o il negozio server (M1-shop), a scelta dell'utente.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M1 – chiusura (ledger, conti, audit, tunable, `/pay`, `/balance`)
+
+**Cosa**
+- Chiusi i piani M1a (10 task) e M1b (12 task). Roadmap: M1 ✅; aggiunta la milestone M1-shop (negozio server, design M1 §3) e la decisione aperta su Vault/ChestShop nelle note di M4 (D-33). `CLAUDE.md` §2 aggiornato (`module-economy`, `breach.module-conventions`).
+
+**File**
+- `docs/roadmap.md`, `CLAUDE.md`, `map.md`, `log.md`.
+
+**Verifica – Definition of Done di M1 (spec §17)**
+- Test di proprietà verdi: `LedgerProperties` 3/3 (conservazione del denaro su 300 sequenze casuali, tassa = ceiling, importi).
+- 1000 transazioni concorrenti senza violare le invarianti: `LedgerConcurrencyIT` verde, skipped=0 — ultima esecuzione: 960 riuscite, 41 saldo insufficiente, 0 retry per deadlock.
+- Riconciliazione notturna che rileva un saldo manomesso: `ReconciliationIT` 4/4 (incluso il job eseguito dallo scheduler alle 04:00).
+- `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; **180 test, 0 failure, 0 error, 0 skipped**; `verifyShadowJar` passato. Smoke test su Paper: voce del Task 11.
+- `map.md`: nessuna voce ⏳ residua.
+
+**Decisioni**
+- Rischio §18: shard dei conti di sistema **non** necessari ora (0 retry per deadlock con lock ordinati); da rivalutare con il test di carico su staging.
+
+**Aperto**
+- Non verificati con un client reale: login (fail-closed), `/pay`, `/balance` da giocatore.
+- Avvisi WSREP/1243 di Flyway all'avvio (cosmetici); UUID invece del nome nel messaggio di rollback rifiutato.
+- Design §8 ancora aperto: Vault/ChestShop (M4), calibrazione di saldo iniziale e tassa `/pay` (beta).
 
 ---
 
