@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 2.
+- **Prossimo passo:** M2a Task 3.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M2a – Task 2 – contratti del territorio in `core-api`
+
+**Cosa**
+- `api/territory/ClaimView` (cubo attorno al cupboard) e `TerritoryService` (`claimAt`, `isAuthorized`, `tierOf`, `hpOfTier`) per M3.
+
+**File**
+- `core-api/src/main/java/org/breachsmp/core/api/territory/{ClaimView,TerritoryService}.java`; test `ClaimViewTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-api:test` → `cannot find symbol` (`ClaimView`).
+- GREEN: `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 182 test, 0 skipped.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 

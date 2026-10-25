@@ -149,6 +149,16 @@ Un modulo li ottiene in `onLoad` con `context.services().require(X.class)`. Tutt
 | `command/ModuleCommand`, `AdminSubcommand`, `CommandRegistry` | Comandi giocatore (`/pay`) e sottocomandi `/breach x` dei moduli; `execute` sul main senza bloccare | `platform/command/CommandHub` ✅ |
 | `lock/PlayerLock` | `withLock(uuid, azione)`: operazioni dello stesso giocatore una alla volta (spec §15) | `platform/lock/SerialPlayerLock` ✅ |
 
+### `api/territory/` ✅ (M2a Task 2)
+Territorio visto dagli altri moduli (M3), senza Bukkit. Implementazione: `ClaimService` di `module-territory`.
+
+| Tipo | A cosa serve |
+| --- | --- |
+| `ClaimView` (record) | `id, world (UUID), x, y, z` del cupboard, `radius`; `contains(world, x, y, z)` = cubo `|d| <= radius` |
+| `TerritoryService` | `claimAt(world, x, y, z)` (solo main thread, il più vicino), `isAuthorized(claimId, player)`, `tierOf(materialKey)`, `hpOfTier(tier)` |
+
+Test: `ClaimViewTest`.
+
 ### `core-paper-api`: `org/breachsmp/core/paper/PaperBridge.java` ✅ (M2a Task 1, D-34)
 Ponte verso Paper per i moduli: `Plugin plugin()` (chiavi PDC, scheduler, ricette), `void registerListener(Listener)` (da `onEnable`), `Path dataFolder()`. Implementazione: `platform/paper/BukkitPaperBridge`, registrata da `ARKPlugin` nel `ServiceRegistry` con gli altri servizi di piattaforma. Un modulo lo ottiene con `context.services().require(PaperBridge.class)`.
 
