@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 5.
+- **Prossimo passo:** M2a Task 6.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M2a – Task 5 – regole di protezione
+
+**Cosa**
+- `core-domain/territory/ProtectionRules`: il claim protegge solo ciò che è costruito (piazzare, rompere la struttura, porte, redstone, martello solo autorizzati; terreno e contenitori liberi); danni esterni, pistoni e fluidi.
+
+**File**
+- `core-domain/src/main/java/org/breachsmp/core/domain/territory/ProtectionRules.java`; test `ProtectionRulesTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-domain:test` → `package ProtectionRules does not exist`.
+- GREEN: `.\gradlew.bat :core-domain:test` → `BUILD SUCCESSFUL`; `ProtectionRulesTest` 7/7 (incluso `pistonMayNotCrossAClaimBoundary`, Review Focus 4).
+
+**Decisioni**
+- Nessuna nuova (aggiunta la costante `NO_CLAIM = 0`).
+
+**Aperto**
+- Nessuno.
 
 ---
 

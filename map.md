@@ -222,7 +222,9 @@ Test: `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest
 | `PinHash` (record) ✅ Task 4 | `salt`, `hash` con copie difensive, `equals` per contenuto, `toString` nasconde i byte | `ClaimService`, `ClaimDao` |
 | `PinHasher` ✅ Task 4 | `static validate(pin)` (4–8 cifre, altrimenti "Il PIN deve avere da 4 a 8 cifre."); `hash(pin)` PBKDF2WithHmacSHA256, 60.000 iterazioni, sale 16 byte; `verify(pin, hash)` a tempo costante (D-37) | `ClaimService` (sul pool COMPUTE) |
 
-Test: `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest`, `PlacedBlockSetTest`, `PinHasherTest` (5.000 claim, 200.000 lookup: deve restare sotto 50 µs di media; misurato 360 ns).
+| `ProtectionRules` ✅ Task 5 | Decisioni pure del claim (T7, T8, T23). `Spot(claimId, actorAuthorized, structure)` (`NO_CLAIM = 0`); `Action` = `PLACE, BREAK, OPEN_DOOR, USE_REDSTONE, HAMMER, OPEN_CONTAINER`; `allows(action, spot)`: fuori dai claim o autorizzato → sì; altrimenti no a tutto tranne rompere il terreno e aprire contenitori; `externalDamageAllowed(spot)` (esplosioni/fuoco/wither: no sulla struttura dei claim); `pistonAllowed(pistonClaim, movedClaims[])` (tutti uguali al claim del pistone); `flowAllowed(from, to)` (non entra in un claim diverso) | `ProtectionListener`, `HammerListener` |
+
+Test: `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest`, `PlacedBlockSetTest`, `PinHasherTest`, `ProtectionRulesTest` (5.000 claim, 200.000 lookup: deve restare sotto 50 µs di media; misurato 360 ns).
 
 **Test di proprietà (jqwik, DoD M1)** – `core-domain/src/test/.../economy/LedgerProperties` + helper `InMemoryLedger` (stesse regole del ledger JDBC: `validate` → ordine per id → `balancesAfter`): 300 sequenze casuali fino a 200 operazioni (give, pay con tassa, take) → somma dei saldi sempre 0, nessun saldo negativo tranne FAUCET, una transazione rifiutata non cambia nulla; tassa = ceiling esatto; `Money.parse` legge ciò che un importo semplice dice.
 
