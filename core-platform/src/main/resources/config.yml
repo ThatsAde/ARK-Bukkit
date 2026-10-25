@@ -15,7 +15,6 @@ database:
   max_lifetime_seconds: 1500
 
 # Feature flag dei moduli: un modulo non elencato è disabilitato.
-# Esempio:
-#   economy:
-#     enabled: true
-modules: {}
+modules:
+  economy:
+    enabled: true

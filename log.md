@@ -10,8 +10,43 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M1 – Ledger. **M1a (piattaforma) completata** il 2026-10-22; M1b (`docs/superpowers/plans/2026-10-22-m1b-ledger.md`, 12 task) in corso sul branch `m1-ledger`.
-- **Prossimo passo:** M1b Task 11 (`EconomyModule`, cablaggio, smoke test).
+- **Prossimo passo:** M1b Task 12 (chiusura di M1), poi revisione finale del branch `m1-ledger`.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M1b – Task 11 – `EconomyModule`, cablaggio nel plugin, jar e smoke test
+
+**Cosa**
+- `EconomyModule` (`ARKModule` `economy`): in `onLoad` registra ledger (`LedgerService`), tunable, hook di login/uscita, `/balance`, `/pay`, sottocomandi `eco|tx|rollback|freeze|unfreeze|recon`, job notturno di riconciliazione; `health()` DEGRADED se la riconciliazione segnala un problema di sistema; `healthDetails()` con massa monetaria, riconciliazione e retry.
+- `ModuleCatalog.all()` = `List.of(new EconomyModule())`; `config.yml` di default con `economy` abilitato; `plugin.yml` con i permessi economici; shadow: Caffeine rilocata, jspecify/errorprone esclusi, `verifyShadowJar` controlla Caffeine.
+
+**File**
+- `module-economy/src/main/java/org/breachsmp/core/economy/EconomyModule.java`, `core-platform/.../module/ModuleCatalog.java`, `core-platform/src/main/resources/{config.yml,plugin.yml}`, `core-platform/build.gradle.kts`; test `EconomyModuleIT`, `ModuleCatalogTest`, `PluginYmlTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat test` → `cannot find symbol EconomyModule`.
+- GREEN: `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`, `verifyShadowJar` passato; 180 test, 0 skipped. Jar shadow: nessuna classe fuori da `org/breachsmp/`.
+- **Smoke test** (Paper 26.2, MariaDB 11.4.13; giocatore `Tester` inserito a mano in `breach_game.player`, perché da console non si entra in gioco):
+  1. `migrazioni applicate ora: 1` (V004), `Modulo 'economy' abilitato`, `Moduli attivi: [economy]`. ✅
+  2. `breach health` → `Modulo economy: HEALTHY`, `Massa monetaria: 0 monete`, `Riconciliazione: mai eseguita`, `Retry deadlock del ledger: 0`. ✅
+  3. `breach tunable` → le 4 chiavi `economy.*` con i default di D-32. ✅
+  4. `breach eco give Tester 12,50 prova smoke` → `Dati 12,50 monete a Tester (tx #1).`; `balance Tester` → `Saldo di Tester: 12,50 monete`; `breach tx Tester` → `#1 … ADMIN_GIVE +12,50 monete → 12,50 monete`. ✅
+  5. `breach freeze Tester test` → congelato; `breach eco take Tester 1 test` → `Tolti 1 moneta a Tester (tx #2).` (i tipi admin passano il freeze); `breach unfreeze` → sbloccato. ✅
+  6. `breach rollback tx 1 test` → **rifiutato** con `Fondi insufficienti sul conto giocatore:<uuid>.`: dopo il take Tester ha 11,50 e annullare il give di 12,50 lo manderebbe in negativo (E10). Comportamento corretto; l'ordine dei passi del piano era sbagliato.
+  7. `breach rollback tx 2 test` → `Rollback eseguito: tx #5 annulla #2.`; di nuovo → `Rollback già eseguito in precedenza: tx #5.`; saldo di nuovo 12,50. ✅ (gli id 3 e 4 li hanno consumati i due rollback rifiutati: `AUTO_INCREMENT` non si riavvolge.)
+  8. `breach recon` → `Riconciliazione: OK (3 conti, …)`; `breach health` → `Massa monetaria: 12,50 monete`. ✅
+  9. Riavvii: `migrazioni applicate ora: 0`; `stop` → `breach-db - Shutdown completed`, nessuna eccezione. ✅
+  - SQL su `breach_game`: somma dei saldi 0; `ledger_tx` = 1 ADMIN_GIVE, 2 ADMIN_TAKE, 5 ROLLBACK; `audit_log` = ECO_GIVE, ACCOUNT_FREEZE, ECO_TAKE, ACCOUNT_UNFREEZE, TX_ROLLBACK (nessuna riga per i rollback rifiutati).
+- **Non verificato:** `/pay` e `/balance` da giocatore in gioco (serve un client): coperti da `PayCommandTest`, `BalanceCommandTest` e dagli IT del ledger.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nella console Windows `–`, `→` e `à` escono come `?`: è la codifica del terminale (il log di Paper è UTF-8), non un errore del plugin.
+- Il messaggio di rollback rifiutato mostra l'UUID del conto e non il nome: migliorabile.
+- La sessione si è interrotta durante la seconda prova; ripresa il 2026-10-25 (MariaDB riavviato), esiti sopra.
 
 ---
 

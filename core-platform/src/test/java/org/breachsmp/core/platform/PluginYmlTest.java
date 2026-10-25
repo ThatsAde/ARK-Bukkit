@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,6 +39,12 @@ class PluginYmlTest {
             assertEquals("op", permissions.get("breach.command").get("default"));
             assertEquals("op", permissions.get("breach.admin.health").get("default"));
             assertEquals("op", permissions.get("breach.admin.tunable").get("default"));
+            for (String admin : List.of("breach.balance.others", "breach.admin.eco", "breach.admin.tx", "breach.admin.rollback",
+                    "breach.admin.freeze", "breach.admin.recon")) {
+                assertEquals("op", permissions.get(admin).get("default"), admin);
+            }
+            assertEquals(true, permissions.get("breach.pay").get("default"));
+            assertEquals(true, permissions.get("breach.balance").get("default"));
         }
     }
 }

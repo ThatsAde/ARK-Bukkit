@@ -13,3 +13,27 @@ permissions:
   breach.admin.tunable:
     description: Legge e modifica i tunable (/breach tunable)
     default: op
+  breach.balance:
+    description: Usa /balance
+    default: true
+  breach.balance.others:
+    description: Vede il saldo di altri giocatori (/balance <giocatore>)
+    default: op
+  breach.pay:
+    description: Usa /pay
+    default: true
+  breach.admin.eco:
+    description: Dà o toglie denaro a un giocatore (/breach eco)
+    default: op
+  breach.admin.tx:
+    description: Mostra i movimenti di un giocatore (/breach tx)
+    default: op
+  breach.admin.rollback:
+    description: Annulla una transazione con una compensativa (/breach rollback)
+    default: op
+  breach.admin.freeze:
+    description: Congela o sblocca il conto di un giocatore (/breach freeze, /breach unfreeze)
+    default: op
+  breach.admin.recon:
+    description: Esegue subito la riconciliazione del ledger (/breach recon)
+    default: op

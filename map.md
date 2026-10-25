@@ -51,7 +51,7 @@ core-platform   (implementation module-economy: unico che collega i moduli, Modu
 | `core-domain/build.gradle.kts` | ✅ | `api(project(":core-api"))` + JUnit + jqwik (test) | Mai aggiungere Paper o librerie I/O |
 | `build-logic/src/main/kotlin/breach.module-conventions.gradle.kts` | ✅ | Convention dei `module-*`: applica `breach.java-conventions` e **fallisce la configurazione** se `api`/`implementation`/`compileOnly`/`runtimeOnly` contengono un progetto diverso da `:core-api`/`:core-domain` (I7, D-21) | Mai allentarla; i test possono usare `testFixtures(project(":core-platform"))` |
 | `module-economy/build.gradle.kts` | ✅ | `breach.module-conventions`; `api(core-api)`, `implementation(core-domain)`, Caffeine; test: testFixtures di `core-platform`, JUnit | Nuove librerie del modulo (da rilocare nello shadow di `core-platform`) |
-| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), plugin `java-test-fixtures` (`testFixturesApi(hikaricp)`, Flyway, Testcontainers, JUnit), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson` sotto `org.breachsmp.core.libs.*`), jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
+| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), plugin `java-test-fixtures` (`testFixturesApi(hikaricp)`, Flyway, Testcontainers, JUnit), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson`, `caffeine` sotto `org.breachsmp.core.libs.*`, esclusi jspecify ed errorprone), `implementation(project(":module-economy"))`, jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
@@ -231,7 +231,7 @@ Chiavi `config.yml` (default in `core-platform/src/main/resources/config.yml`):
 | `database.password_file` | percorso relativo alla cartella del plugin | `secrets/db-password` |
 | `database.pool_size` | 0–100 (`0` = automatico) | `0` |
 | `database.max_lifetime_seconds` | 30–28000 (sotto il `wait_timeout` di MariaDB) | `1500` |
-| `modules.<id>.enabled` | boolean; id `[a-z][a-z0-9-]*` | sezione vuota |
+| `modules.<id>.enabled` | boolean; id `[a-z][a-z0-9-]*` | `economy: enabled: true` |
 
 Test: `ConfigLoaderTest` (incluso: chiavi duplicate rifiutate; il `config.yml` spedito nel jar è valido).
 
@@ -328,7 +328,7 @@ Implementa `ServiceRegistry` con `ConcurrentHashMap<Class<?>, Object>`. Test: `S
 | `DefaultModuleContext` (record) ✅ | Implementa `ModuleContext`; componenti `(moduleId, services, executors, logger, dataSource)` | `sync(Supplier)` = `CompletableFuture.supplyAsync(task, executors.main())` |
 | `ModuleRegistry` ✅ | Ciclo di vita dei moduli; catalogo immutabile assegnato in `load()` (letto da altri thread in `health()`) | `load(Collection<? extends ARKModule>, Predicate<String> isEnabled, Function<String, ModuleContext>)`: id duplicati → `IllegalStateException`; ordina con `DependencyResolver`; `onLoad` in ordine. `enableAll()`: `onEnable` in ordine, errore → `ModuleStartupException`. `disableAll()`: `onDisable` in ordine inverso solo sui moduli abilitati, un errore non ferma gli altri. `List<String> order()`. `Map<String, HealthStatus> health()`: abilitati → `health()` (eccezione → `FAILED`), caricati non abilitati → `STARTING`, altri → `DISABLED` |
 | `ModuleStartupException` ✅ | Errore in `onLoad`/`onEnable`; il messaggio contiene l'id del modulo | – |
-| `ModuleCatalog` ✅ | **Unico posto** che elenca le implementazioni dei moduli (I7) | `static List<ARKModule> all()` → in M0 `List.of()` |
+| `ModuleCatalog` ✅ | **Unico posto** che elenca le implementazioni dei moduli (I7) | `static List<ARKModule> all()` → `List.of(new EconomyModule())` (M1b). Test: `ModuleCatalogTest` (contiene `economy`, id unici) |
 
 Test: `DefaultModuleContextTest`, `ModuleRegistryTest`.
 
@@ -364,8 +364,8 @@ Test: `BreachCommandTest`, `CommandDeliveryTest`, `CommandHubTest`, `HealthSubco
 
 | File | Stato | Contenuto | Quando toccarlo |
 | --- | --- | --- | --- |
-| `src/main/resources/plugin.yml` | ✅ (`api-version: '26.2'` accettato da Paper 26.2, smoke test 2026-10-22) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi `breach.command`, `breach.admin.health`, `breach.admin.tunable` (tutti `op`) | Nuovi permessi/sottocomandi |
-| `src/main/resources/config.yml` | ✅ Task 6 | Config di default (vedi tabella §6) | Nuove chiavi |
+| `src/main/resources/plugin.yml` | ✅ (`api-version: '26.2'` accettato da Paper 26.2, smoke test 2026-10-22) | `name: BreachCore`, `main`, `version` (espansa da Gradle), `api-version: '26.2'`, permessi: `breach.command`, `breach.admin.health`, `breach.admin.tunable`, `breach.balance.others`, `breach.admin.eco`, `breach.admin.tx`, `breach.admin.rollback`, `breach.admin.freeze`, `breach.admin.recon` (`op`); `breach.balance`, `breach.pay` (`true`) | Nuovi permessi/sottocomandi |
+| `src/main/resources/config.yml` | ✅ | Config di default (vedi tabella §6); modulo `economy` abilitato | Nuove chiavi |
 | `src/main/resources/db/migration/V001__platform_create_player.sql` | ✅ Task 7 | Tabella `player` (globale) | **Mai** dopo l'applicazione |
 
 Migrazioni applicate (aggiorna a ogni nuova migrazione):
@@ -459,4 +459,18 @@ Sottocomandi di `/breach` registrati con `CommandRegistry.registerAdmin`. Parsin
 | `AdminCommands` | Helper: `done`, `withPlayer` (giocatore non trovato → errore), `playersByPrefix` | – |
 
 Test: `AdminArgsTest` (4). Il comportamento sul DB delle operazioni è coperto da `EconomyAdminIT`.
+
+### `economy/EconomyModule.java` ✅ (M1b Task 11)
+`ARKModule` con id `economy` (`EconomyModule.ID`), elencato in `ModuleCatalog`.
+
+| Metodo | Cosa fa |
+| --- | --- |
+| `onLoad(context)` | Richiede gli 8 servizi di piattaforma; registra i tunable (`EconomyTunables.register`); crea `AccountDao`, `BalanceCache`, `JdbcLedgerService` (pubblicato come `LedgerService`), `EconomyAdmin`, `ReconciliationJob`, `SlidingWindowLimiter` (1 min), `EconomyLogin` (hook di login e uscita); comandi `BalanceCommand`, `PayCommand`; sottocomandi `eco`, `tx`, `rollback`, `freeze`, `unfreeze`, `recon`; job `economy.reconciliation` a `Schedules.nextDaily(now, economy.recon_hour)` |
+| `onEnable()` / `onDisable()` | Vuoti: la piattaforma attiva comandi, hook e job; il DB è la fonte di verità (niente flush, niente lavoro sul main) |
+| `health()` | `DEGRADED` se `ReconciliationJob.systemProblem()`, altrimenti `HEALTHY` |
+| `healthDetails()` (thread DB) | `Massa monetaria: …`, righe della riconciliazione, `Retry deadlock del ledger: N` |
+
+Test: `EconomyModuleIT` (cablaggio con i servizi reali di piattaforma: ledger pubblicato, comandi, sottocomandi, tunable, hook di login, job alle 04:00, health e dettagli).
+
+**Jar shadow:** Caffeine rilocata in `org.breachsmp.core.libs.caffeine`, `org.jspecify` e `com.google.errorprone` esclusi; `verifyShadowJar` controlla che `org/breachsmp/core/libs/caffeine/cache/Caffeine.class` ci sia e che non ci siano voci `com/github/benmanes/`.
 

@@ -65,12 +65,16 @@ tasks {
         // Paper fornisce già slf4j (D-11)
         dependencies {
             exclude(dependency("org.slf4j:.*"))
+            // Caffeine porta solo annotazioni (D-23): non servono a runtime
+            exclude(dependency("org.jspecify:.*"))
+            exclude(dependency("com.google.errorprone:.*"))
         }
         val libsPackage = "org.breachsmp.core.libs"
         relocate("com.zaxxer.hikari", "$libsPackage.hikari")
         relocate("org.flywaydb", "$libsPackage.flyway")
         relocate("org.mariadb.jdbc", "$libsPackage.mariadb")
         relocate("com.fasterxml.jackson", "$libsPackage.jackson")
+        relocate("com.github.benmanes.caffeine", "$libsPackage.caffeine")
     }
 
 
@@ -99,6 +103,12 @@ tasks {
                         val lines = zip.getInputStream(entry).bufferedReader().readLines().map { it.trim() }
                         entries.filter { it !in lines }.forEach { problems += "$path non contiene $it" }
                     }
+                }
+                if (zip.getEntry("org/breachsmp/core/libs/caffeine/cache/Caffeine.class") == null) {
+                    problems += "Caffeine rilocata mancante: org/breachsmp/core/libs/caffeine/cache/Caffeine.class"
+                }
+                zip.entries().asSequence().firstOrNull { it.name.startsWith("com/github/benmanes/") }?.let {
+                    problems += "classe di Caffeine non rilocata: ${it.name}"
                 }
                 if (problems.isNotEmpty()) {
                     throw GradleException("Jar shadow non valido:\n - " + problems.joinToString("\n - "))
