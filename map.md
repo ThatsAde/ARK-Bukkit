@@ -218,7 +218,11 @@ Test: `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest
 | `ClaimBox` (record) ✅ Task 3 | `(world UUID, x, y, z, radius)` del cupboard; `contains(world, x, y, z)` cubo; `intersects(other, gap)` = stessi mondo e `|d| <= r1 + r2 + gap` su ogni asse; `squaredDistance(x, y, z)` | `ClaimIndex`, `ClaimService` |
 | `ClaimIndex<T>` ✅ Task 3 | Bucket per chunk (porta ToolCupboards): `add(claim, box)` (duplicato → `IllegalStateException`), `remove(claim)`, `covering(world, x, y, z)` dal più vicino al cupboard, `overlapping(box, gap)`, `size()`. Non thread-safe: solo main thread | `ClaimService` |
 
-Test: `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest` (5.000 claim, 200.000 lookup: deve restare sotto 50 µs di media; misurato 360 ns).
+| `PlacedBlockSet` ✅ Task 4 | Posizioni piazzate da giocatori in un chunk (D-39): `fromArray(int[])` (anche disordinato, duplicati scartati), `toArray()` ordinato per il PDC, `add/remove/contains(localX, y, localZ)`, `size()`; `pack` = x bit 16–19, z bit 12–15, y+2048 bit 0–11; fuori dal chunk → `IllegalArgumentException` | `PlacedBlockTracker` |
+| `PinHash` (record) ✅ Task 4 | `salt`, `hash` con copie difensive, `equals` per contenuto, `toString` nasconde i byte | `ClaimService`, `ClaimDao` |
+| `PinHasher` ✅ Task 4 | `static validate(pin)` (4–8 cifre, altrimenti "Il PIN deve avere da 4 a 8 cifre."); `hash(pin)` PBKDF2WithHmacSHA256, 60.000 iterazioni, sale 16 byte; `verify(pin, hash)` a tempo costante (D-37) | `ClaimService` (sul pool COMPUTE) |
+
+Test: `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest`, `PlacedBlockSetTest`, `PinHasherTest` (5.000 claim, 200.000 lookup: deve restare sotto 50 µs di media; misurato 360 ns).
 
 **Test di proprietà (jqwik, DoD M1)** – `core-domain/src/test/.../economy/LedgerProperties` + helper `InMemoryLedger` (stesse regole del ledger JDBC: `validate` → ordine per id → `balancesAfter`): 300 sequenze casuali fino a 200 operazioni (give, pay con tassa, take) → somma dei saldi sempre 0, nessun saldo negativo tranne FAUCET, una transazione rifiutata non cambia nulla; tassa = ceiling esatto; `Money.parse` legge ciò che un importo semplice dice.
 

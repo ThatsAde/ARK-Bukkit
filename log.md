@@ -10,8 +10,28 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 4.
+- **Prossimo passo:** M2a Task 5.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-10-25 – M2a – Task 4 – registro dei blocchi piazzati e hash del PIN
+
+**Cosa**
+- `core-domain/territory`: `PlacedBlockSet` (array ordinato di posizioni impacchettate per il PDC del chunk, D-39), `PinHash` (sale + hash, copie difensive) e `PinHasher` (validazione 4–8 cifre, PBKDF2WithHmacSHA256 60.000 iterazioni, verifica a tempo costante, D-37).
+
+**File**
+- `core-domain/src/main/java/org/breachsmp/core/domain/territory/{PlacedBlockSet,PinHash,PinHasher}.java`; test `PlacedBlockSetTest`, `PinHasherTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-domain:test` → `cannot find symbol` (`PinHasher`).
+- GREEN: `.\gradlew.bat :core-domain:test` → `BUILD SUCCESSFUL`; `PlacedBlockSetTest` 3, `PinHasherTest` 2.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Nessuno.
 
 ---
 
