@@ -10,8 +10,29 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 11.
+- **Prossimo passo:** M2a Task 12.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-11-04 – M2a – Task 11 – martello e upgrade dei blocchi
+
+**Cosa**
+- `core-domain/territory/UpgradePlanner` (piano dell'upgrade: fattibile, materiali mancanti, nessun upgrade) e `territory/hammer/HammerListener`.
+
+**File**
+- `core-domain/src/main/java/org/breachsmp/core/domain/territory/UpgradePlanner.java`; test `UpgradePlannerTest`; `module-territory/src/main/java/org/breachsmp/core/territory/hammer/HammerListener.java`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :core-domain:test` → `package UpgradePlanner does not exist`.
+- GREEN: `.\gradlew.bat :core-domain:test` → `UpgradePlannerTest` 3/3.
+- `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; 218 test, 0 skipped.
+
+**Decisioni**
+- Nessuna nuova D-xx. Dettagli: il martello conta e spende solo stack semplici (uguali a `new ItemStack(tipo)`), perché `removeItem` toglie solo quelli e così un Tool Cupboard (un barile con segno) non viene mai speso come materiale; un claim solo riservato non si martella. Nel test il costo di `OAK_PLANKS → COBBLESTONE` è 2 cobblestone (il piano dava solo l'inventario di 3).
+
+**Aperto**
+- Nessuno.
 
 ---
 

@@ -229,6 +229,7 @@ Test: `MoneyTest`, `FeePolicyTest`, `LedgerRulesTest`, `SlidingWindowLimiterTest
 | `TerritoryConfig` (record) ✅ Task 6 | `(tiers, worlds, cupboardMaterial, cupboardTier, cupboardRecipe, hammerMaterial, hammerRecipe)`: `territory.yml` validato (D-38) | `TerritoryConfigLoader`, `TerritoryModule` |
 | `TerritoryConfigParser` ✅ Task 6 | `parse(Map<String,Object>)` da mappe annidate (forma SnakeYAML, chiavi dei tier lette con `String.valueOf`); `CURRENT_VERSION = 1`; raccoglie TUTTI gli errori (versione, `default_tier`/`cupboard.tier` definiti, hp > 0, materiale in più tier, upgrade che non sale di tier, costi > 0, sezioni `cupboard`/`hammer`, ricette con prefisso `<sezione>.recipe: `). Non verifica che i materiali esistano in Bukkit (lo fa il modulo, Task 12). Quando toccarlo: nuove chiavi di `territory.yml` | `TerritoryConfigLoader` |
 | `TerritoryConfigException` ✅ Task 6 | `errors()`: elenco completo; messaggio = errori uniti da `; ` | `TerritoryConfigLoader` (fail-closed) |
+| `territory/UpgradePlanner` ✅ (Task 11) | `plan(TierTable, blockMaterial, inventory)` → `Upgrade(rule)` se l'inventario copre il costo, `MissingMaterials(materiale → quanti mancano)`, `NoUpgrade()` se il materiale non ha upgrade (ultimo tier o sconosciuto). Test `UpgradePlannerTest` (3) | `HammerListener` |
 
 Test: `ClaimBoxTest`, `ClaimIndexTest`, `ClaimIndexPerformanceTest`, `PlacedBlockSetTest`, `PinHasherTest`, `ProtectionRulesTest`, `TerritoryConfigParserTest`, `TierTableTest` (`ClaimIndexPerformanceTest`: 5.000 claim, 200.000 lookup: deve restare sotto 50 µs di media; misurato 360 ns).
 
@@ -571,3 +572,6 @@ Record dei 4 tunable: `territory.claim_radius` (16, 1–64), `territory.claim_ga
 | `ClaimVisualizer(PaperBridge)` | `show(Player, ClaimBox)`: i 12 spigoli del cubo in `HAPPY_VILLAGER`, punto ogni 2 blocchi, solo a chi guarda, 10 frame da 1 s (portato da ToolCupboards) | `CupboardMenu` |
 
 Nessun test unitario (UI Bukkit): le regole sono in `ClaimServiceIT`; verifica nello smoke test.
+
+### `territory/hammer/HammerListener.java` ✅ (M2a Task 11, D-41)
+`PlayerInteractEvent` destro con il martello in mano principale (NORMAL, `ignoreCancelled`): annulla l'evento; il blocco deve essere struttura (`isPlaced`) di un claim confermato dove il giocatore è autorizzato (`ProtectionRules.Action.HAMMER`, bypass staff), altrimenti "Puoi migliorare solo i blocchi della tua base."; conta solo gli stack semplici (uguali a quelli vanilla: niente cupboard spesi) e chiede a `UpgradePlanner`: `Upgrade` → `removeItem` del costo, `setType(to, true)`, il segno resta, "Blocco migliorato a <nome tier>."; `MissingMaterials` → "Servono ancora: 1× IRON_NUGGET."; `NoUpgrade` → "Questo blocco non ha un tier superiore.". Registrato da `TerritoryModule.onEnable` (Task 12).
