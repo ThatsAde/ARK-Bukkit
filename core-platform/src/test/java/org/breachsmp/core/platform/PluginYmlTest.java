@@ -40,7 +40,7 @@ class PluginYmlTest {
             assertEquals("op", permissions.get("breach.admin.health").get("default"));
             assertEquals("op", permissions.get("breach.admin.tunable").get("default"));
             for (String admin : List.of("breach.balance.others", "breach.admin.eco", "breach.admin.tx", "breach.admin.rollback",
-                    "breach.admin.freeze", "breach.admin.recon")) {
+                    "breach.admin.freeze", "breach.admin.recon", "breach.admin.claim", "breach.territory.bypass")) {
                 assertEquals("op", permissions.get(admin).get("default"), admin);
             }
             assertEquals(true, permissions.get("breach.pay").get("default"));

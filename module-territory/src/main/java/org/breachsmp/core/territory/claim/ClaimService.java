@@ -110,6 +110,11 @@ public final class ClaimService implements TerritoryService {
         return covering.isEmpty() ? Optional.empty() : Optional.of(covering.getFirst());
     }
 
+    /** Claim confermato con quell'id (per {@code /breach claim remove}). */
+    public Optional<LiveClaim> claimById(long claimId) {
+        return Optional.ofNullable(byId.get(claimId));
+    }
+
     /** Claim del cupboard in quella posizione, anche se solo riservato. */
     public Optional<LiveClaim> claimByCupboard(UUID world, int x, int y, int z) {
         return Optional.ofNullable(byCupboard.get(new CupboardKey(world, x, y, z)));

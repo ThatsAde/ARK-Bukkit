@@ -2,6 +2,7 @@ package org.breachsmp.core.domain.territory;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -24,5 +25,6 @@ class TierTableTest {
     void upgradeOnlyWhereConfigured() {
         assertEquals(Optional.empty(), tiers.upgradeOf("COBBLESTONE"));
         assertEquals("COBBLESTONE", tiers.upgradeOf("oak_planks").orElseThrow().to());
+        assertEquals(List.of(tiers.upgradeOf("OAK_PLANKS").orElseThrow()), List.copyOf(tiers.upgrades()));
     }
 }

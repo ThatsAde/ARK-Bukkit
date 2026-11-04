@@ -37,3 +37,9 @@ permissions:
   breach.admin.recon:
     description: Esegue subito la riconciliazione del ledger (/breach recon)
     default: op
+  breach.admin.claim:
+    description: Informazioni, rimozione e item dei claim (/breach claim)
+    default: op
+  breach.territory.bypass:
+    description: Costruisce, rompe e apre in ogni claim come se fosse autorizzato
+    default: op

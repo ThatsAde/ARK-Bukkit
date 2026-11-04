@@ -10,8 +10,38 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 12.
+- **Prossimo passo:** M2a Task 13 (chiusura), poi review finale del branch.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-11-04 – M2a – Task 12 – `TerritoryModule`, config, ricette, comandi admin, smoke test
+
+**Cosa**
+- `TerritoryModule` (id `territory`), `TerritoryConfigLoader`, `command/ClaimSubcommand` (`/breach claim info|remove|give`), `territory.yml` di default; `ClaimService.claimById`; `TierTable.upgrades()`.
+- Piattaforma: `ModuleCatalog` con `new TerritoryModule()`, `config.yml` con `territory.enabled: true`, `plugin.yml` con `breach.admin.claim` e `breach.territory.bypass` (`op`).
+
+**File**
+- `module-territory/src/main/java/org/breachsmp/core/territory/{TerritoryModule,TerritoryConfigLoader}.java`, `.../command/ClaimSubcommand.java`, `.../claim/ClaimService.java`, `module-territory/src/main/resources/territory.yml`; `core-domain/.../territory/TierTable.java`; `core-platform/.../module/ModuleCatalog.java`, `core-platform/src/main/resources/{config.yml,plugin.yml}`; test `TerritoryModuleIT`, `TierTableTest`, `ModuleCatalogTest`, `PluginYmlTest`; `map.md`, `log.md`.
+
+**Verifica**
+- RED: `TierTableTest` → `cannot find symbol upgrades()`; `TerritoryModuleIT` → `ExceptionInInitializerError` (`Material.isBlock()` legge il registry del server, assente nei test: vedi decisioni); `ModuleCatalogTest`, `PluginYmlTest` → falliti prima delle modifiche.
+- GREEN: `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`, `verifyShadowJar` passato; **219 test, 0 failure, 0 error, 0 skipped**. `TerritoryModuleIT` conferma anche che ogni materiale del `territory.yml` di default esiste.
+- **Smoke test** (Paper 26.2 build di prova, MariaDB 11.4.13, `runServer` con i comandi passati alla console via stdin):
+  1. Primo avvio: **fallito per disco C: pieno** (`Error writing file '.\breach_game\claim.frm' (Errcode: 28 "No space left on device")`): V005 fallita, plugin disabilitato con messaggio esplicito (fail-closed corretto). Flyway aveva registrato `005` con `success = 0`, nessuna tabella creata: tolta a mano quella riga da `breach_game.flyway_schema_history` (equivale a `flyway repair`).
+  2. Secondo avvio: `migrazioni applicate ora: 1` (V005), `Territorio: 0 claim caricati`, `Moduli attivi: [economy, territory]`. ✅
+  3. `breach health` → `Modulo territory: HEALTHY`, `Claim attivi: 0`. ✅
+  4. `breach tunable` → le 4 chiavi `territory.*` con i default di D-38. ✅
+  5. `breach claim give cupboard Tester` → `Giocatore non online: Tester.`; `breach claim info` → `Solo un giocatore può usare /breach claim info.`; `breach claim remove 999 prova` → `Nessun claim #999.`; `breach claim` → riga d'uso. Nessuna eccezione. ✅
+  6. `stop` → `breach-db - Shutdown completed`. ✅
+- **Non verificato (serve un client):** piazzare/rompere fuori e dentro un claim, PIN giusto e sbagliato, porta di un altro, TNT accanto a un muro, pistone verso il claim, martello con e senza materiali, ricette nel crafting, riavvio con claim ancora attivo. Lista di prova per l'utente nella sezione *Aperto*.
+
+**Decisioni**
+- Nessuna nuova D-xx. Dettagli: la validazione di `territory.yml` è in due tempi: in `onLoad` l'esistenza dei materiali (`Material.matchMaterial` funziona senza server), in `onEnable` cupboard = blocco e upgrade tra blocchi pieni (`isBlock/isSolid/isOccluding` richiedono il registry; un errore in `onEnable` blocca comunque l'avvio, D-08). `ClaimSubcommand` riceve item e registro tramite `Supplier`, perché esistono solo dopo `onEnable` (`NamespacedKey` richiede il plugin). `remove` da comando toglie il blocco del cupboard solo se il chunk è caricato (non carica chunk per questo). `TerritoryModuleIT` e `TerritoryModule` scritti nello stesso passo: il RED è venuto da un difetto reale (registry), non dall'assenza della classe.
+
+**Aperto**
+- Prova in gioco (lista del piano): piazzare/rompere fuori e dentro un claim; PIN giusto, sbagliato e 6 tentativi; porta e leva di un altro; TNT accanto a un muro della base; pistone che spinge dentro il claim; martello con e senza materiali; ricette di cupboard e martello; riavvio con il claim ancora attivo.
+- Disco C: quasi pieno: MariaDB portatile ha i dati su C: e fallisce le scritture quando lo spazio finisce.
 
 ---
 

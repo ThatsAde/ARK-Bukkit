@@ -18,3 +18,5 @@ database:
 modules:
   economy:
     enabled: true
+  territory:
+    enabled: true

@@ -1,5 +1,6 @@
 package org.breachsmp.core.domain.territory;
 
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +52,11 @@ public final class TierTable {
 
     public Optional<UpgradeRule> upgradeOf(String material) {
         return Optional.ofNullable(upgrades.get(normalize(material)));
+    }
+
+    /** Tutti gli upgrade configurati (per validare i materiali all'avvio). */
+    public Collection<UpgradeRule> upgrades() {
+        return upgrades.values();
     }
 
     /** Materiali elencati esplicitamente in un tier. */

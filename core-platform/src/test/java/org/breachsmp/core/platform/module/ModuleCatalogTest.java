@@ -12,9 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ModuleCatalogTest {
 
     @Test
-    void catalogContainsEconomyWithUniqueIds() {
+    void catalogContainsEconomyAndTerritoryWithUniqueIds() {
         List<String> ids = ModuleCatalog.all().stream().map(ARKModule::id).toList();
         assertTrue(ids.contains("economy"), ids.toString());
+        assertTrue(ids.contains("territory"), ids.toString());
         assertEquals(ids.size(), Set.copyOf(ids).size(), "id dei moduli duplicati: " + ids);
     }
 }

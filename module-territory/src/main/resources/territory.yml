@@ -1,0 +1,154 @@
+# Territorio di BreachCore (D-38): tier dei blocchi, upgrade col martello, Tool Cupboard, ricette, mondi.
+# Errori di validazione = avvio fallito (fail-closed, D-08). I numeri da regolare a caldo sono tunable:
+# territory.claim_radius, territory.claim_gap, territory.max_cupboards_per_player, territory.pin_attempts_per_10_min.
+config_version: 1
+
+# Mondi dove si possono piazzare Tool Cupboard (nomi dei mondi).
+worlds:
+  - world
+
+# Tier dei blocchi non elencati sotto.
+default_tier: 1
+
+# Tier del GDD (design M2, T10). hp = punti vita massimi del blocco (danno ai blocchi: M2b).
+tiers:
+  1:
+    name: Legno
+    hp: 10
+    materials:
+      - OAK_PLANKS
+      - SPRUCE_PLANKS
+      - BIRCH_PLANKS
+      - JUNGLE_PLANKS
+      - ACACIA_PLANKS
+      - DARK_OAK_PLANKS
+      - MANGROVE_PLANKS
+      - CHERRY_PLANKS
+      - PALE_OAK_PLANKS
+      - BAMBOO_PLANKS
+      - CRIMSON_PLANKS
+      - WARPED_PLANKS
+      - OAK_LOG
+      - SPRUCE_LOG
+      - BIRCH_LOG
+      - JUNGLE_LOG
+      - ACACIA_LOG
+      - DARK_OAK_LOG
+      - MANGROVE_LOG
+      - CHERRY_LOG
+      - PALE_OAK_LOG
+      - BAMBOO_BLOCK
+      - CRIMSON_STEM
+      - WARPED_STEM
+      - OAK_DOOR
+      - SPRUCE_DOOR
+      - BIRCH_DOOR
+      - JUNGLE_DOOR
+      - ACACIA_DOOR
+      - DARK_OAK_DOOR
+      - MANGROVE_DOOR
+      - CHERRY_DOOR
+      - PALE_OAK_DOOR
+      - BAMBOO_DOOR
+      - CRIMSON_DOOR
+      - WARPED_DOOR
+      - OAK_TRAPDOOR
+      - SPRUCE_TRAPDOOR
+      - BIRCH_TRAPDOOR
+      - JUNGLE_TRAPDOOR
+      - ACACIA_TRAPDOOR
+      - DARK_OAK_TRAPDOOR
+      - MANGROVE_TRAPDOOR
+      - CHERRY_TRAPDOOR
+      - PALE_OAK_TRAPDOOR
+      - BAMBOO_TRAPDOOR
+      - CRIMSON_TRAPDOOR
+      - WARPED_TRAPDOOR
+      - OAK_FENCE_GATE
+      - SPRUCE_FENCE_GATE
+      - BIRCH_FENCE_GATE
+      - JUNGLE_FENCE_GATE
+      - ACACIA_FENCE_GATE
+      - DARK_OAK_FENCE_GATE
+      - MANGROVE_FENCE_GATE
+      - CHERRY_FENCE_GATE
+      - PALE_OAK_FENCE_GATE
+      - BAMBOO_FENCE_GATE
+      - CRIMSON_FENCE_GATE
+      - WARPED_FENCE_GATE
+  2:
+    name: Pietra
+    hp: 30
+    materials:
+      - COBBLESTONE
+      - MOSSY_COBBLESTONE
+      - STONE
+      - STONE_BRICKS
+      - MOSSY_STONE_BRICKS
+      - CRACKED_STONE_BRICKS
+      - CHISELED_STONE_BRICKS
+      - BRICKS
+  3:
+    name: Rinforzato
+    hp: 60
+    materials:
+      - POLISHED_DEEPSLATE
+      - DEEPSLATE_BRICKS
+      - DEEPSLATE_TILES
+  4:
+    name: Metallo
+    hp: 120
+    materials:
+      - IRON_BLOCK
+      - IRON_DOOR
+      - IRON_TRAPDOOR
+  5:
+    name: Corazzato
+    hp: 250
+    materials:
+      - NETHERITE_BLOCK
+
+# Upgrade col martello (D-41: solo blocchi pieni). Costi segnaposto, da calibrare in beta (design §8).
+upgrades:
+  OAK_PLANKS:
+    to: COBBLESTONE
+    cost:
+      COBBLESTONE: 2
+  COBBLESTONE:
+    to: POLISHED_DEEPSLATE
+    cost:
+      COBBLED_DEEPSLATE: 2
+      IRON_NUGGET: 2
+  POLISHED_DEEPSLATE:
+    to: IRON_BLOCK
+    cost:
+      IRON_INGOT: 9
+  IRON_BLOCK:
+    to: NETHERITE_BLOCK
+    cost:
+      NETHERITE_SCRAP: 4
+      GOLD_INGOT: 4
+
+# Tool Cupboard: un barile (non si unisce a un vicino, D-42).
+cupboard:
+  material: BARREL
+  tier: 4
+  recipe:
+    pattern:
+      - "PPP"
+      - "PIP"
+      - "PPP"
+    ingredients:
+      P: OAK_PLANKS
+      I: IRON_INGOT
+
+# Martello da costruzione.
+hammer:
+  material: BRUSH
+  recipe:
+    pattern:
+      - " I"
+      - "S "
+    ingredients:
+      I: IRON_INGOT
+      S: STICK

@@ -2,6 +2,7 @@ package org.breachsmp.core.platform.module;
 
 import org.breachsmp.core.api.module.ARKModule;
 import org.breachsmp.core.economy.EconomyModule;
+import org.breachsmp.core.territory.TerritoryModule;
 
 import java.util.List;
 
@@ -15,6 +16,6 @@ public final class ModuleCatalog {
     }
 
     public static List<ARKModule> all() {
-        return List.of(new EconomyModule());
+        return List.of(new EconomyModule(), new TerritoryModule());
     }
 }
