@@ -540,3 +540,19 @@ Listener e registro "piazzato da un giocatore" nel PDC dei chunk (chiave `breach
 | `EntityChangeBlockEvent` di `FallingBlock` | Partenza da un blocco segnato → smarca e mette `breachcore:placed_falling` sull'entità; atterraggio di un'entità con quel segno → marca |
 
 Chi lo usa: `ProtectionListener` (Task 9), `CupboardListener` (Task 10), `HammerListener` (Task 11); registrato da `TerritoryModule.onEnable` (Task 12). Nessun test unitario (tipi Bukkit): la logica è in `PlacedBlockSet`; verifica nello smoke test.
+
+### `territory/protect/ProtectionListener.java` ✅ (M2a Task 9)
+Collega gli eventi a `ProtectionRules` (priorità HIGH, `ignoreCancelled`); solo letture in memoria (`ClaimService.claimCovering`, `PlacedBlockTracker.isPlaced`). Costante `BYPASS_PERMISSION = "breach.territory.bypass"` (lo staff conta come autorizzato). Un claim solo riservato vale come id `-1` (non `NO_CLAIM`), così protegge già.
+
+| Evento | Regola | Messaggio |
+| --- | --- | --- |
+| `BlockPlaceEvent` (anche multi: tutte le posizioni), `PlayerBucketEmptyEvent` | `PLACE` | "Non puoi costruire in questa base." |
+| `BlockBreakEvent` (salta il cupboard: `CupboardListener`) | `BREAK` | "Questo blocco è protetto: serve un Breach Core." |
+| `PlayerInteractEvent` destro su porte/botole/cancelli | `OPEN_DOOR` | "Questa porta è chiusa." |
+| destro su pulsanti/leve; `PHYSICAL` su piastre | `USE_REDSTONE` | "Questo comando è bloccato." (nessuno per le piastre) |
+| `EntityExplodeEvent`, `BlockExplodeEvent` | toglie da `blockList()` i blocchi con `externalDamageAllowed == false` | – |
+| `BlockBurnEvent`; `BlockIgniteEvent` `SPREAD`/`LAVA` (struttura = un blocco piazzato lì o accanto); `EntityChangeBlockEvent` non `FallingBlock` | `externalDamageAllowed` | – |
+| `BlockPistonExtendEvent`/`RetractEvent` | `pistonAllowed(claim del pistone, partenza e arrivo di ogni blocco)` | – |
+| `BlockFromToEvent` | `flowAllowed` (solo se l'arrivo è in un claim) | – |
+
+Chi lo usa: `TerritoryModule.onEnable` (Task 12). Nessun test unitario: le regole sono in `ProtectionRulesTest`; verifica nello smoke test.
