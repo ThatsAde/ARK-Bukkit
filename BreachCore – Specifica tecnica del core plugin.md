@@ -222,7 +222,7 @@ CREATE TABLE claim_member (claim_id BIGINT UNSIGNED, uuid BINARY(16), role TINYI
 
 - **Indice spaziale in memoria:** mappa `chunkKey (long) → lista di claim` per tutti i chunk toccati. Ogni claim è un cubo attorno al cupboard, quindi tocca pochi chunk. Verifica di un blocco: lookup del chunk → pochi test AABB, O(k) con k piccolo.
 - **Regola di non sovrapposizione:** un nuovo cupboard non può avere un cubo che si interseca con altri claim espansi di una distanza minima.
-- **Team massimo 6** verificato nella tabella `team` e ricontrollato a ogni aggiunta membro.
+- **Basi condivise tramite PIN** (design M2, `docs/superpowers/specs/2026-10-25-m2-territorio-design.md`): chi conosce il PIN del Tool Cupboard si autorizza da solo, gli autorizzati sono in `claim_member`. Non c'è una tabella `team` del territorio: il limite di 6 è della squadra Extraction (M5).
 
 ### Tier dei blocchi
 

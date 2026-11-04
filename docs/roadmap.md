@@ -8,7 +8,7 @@ Loop minimo giocabile: **M0–M5**. Plot, banca, arene, stagioni e store si aggi
 | --- | --- | --- | --- | --- |
 | **M0** Scheletro | ✅ completata (2026-10-22) | `plans/2026-10-21-m0-scheletro.md` | – | Il plugin parte, le migrazioni girano, health OK |
 | **M1** Ledger, conti, audit, tunables, `/pay` `/balance` | ✅ completata (2026-10-25) | `plans/2026-10-22-m1a-piattaforma.md`, `plans/2026-10-22-m1b-ledger.md` | M0 | Property test verdi; 1000 tx concorrenti senza violare invarianti; riconciliazione notturna |
-| **M2** Claim, Tool Cupboard, tier, protezione eventi | ⏳ | – | M0 | Nessun danno esterno sui claim; indice spaziale entro budget |
+| **M2** Claim, Tool Cupboard, tier, protezione eventi | 🟡 M2a completata (2026-11-04), M2b da pianificare | `plans/2026-10-25-m2a-territorio.md` | M0 | Nessun danno esterno sui claim; indice spaziale entro budget |
 | **M3** Oggetti, Breach Core, gate, blast, shield | ⏳ | – | M1, M2 | Test di dupe superato; raid completo su base di prova |
 | **M4** Mailbox, Mercato, escrow | ⏳ | – | M1, M3 | Vendita di un Core con trasferimento atomico |
 | **M5** Extraction | ⏳ | – | M1, M3 | Run completa con estrazione, morte e reset senza intervento manuale |
@@ -49,6 +49,7 @@ M0 è chiusa (2026-10-22). M1 è chiusa (2026-10-25): DoD verificata con test di
 ### M5 – Extraction (spec §8)
 - `zone_cycle`, `extraction_session`, `extraction_point`, `zone_supply`, `loot_spawn`, `loot_event`; scambio del mondo template.
 - Decisione aperta: comportamento alla disconnessione (linger 15 s, da validare in beta).
+- Squadra Extraction: massimo 6 giocatori (il limite non riguarda il territorio, dove le basi si condividono col PIN, design M2).
 
 ### M6–M10
 - M6: `plot`, `rent_contract`, `mailbox`, job con `idem_key` deterministica; limiti anti-farm.

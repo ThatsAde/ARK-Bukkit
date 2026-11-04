@@ -8,10 +8,32 @@
 
 ## Stato attuale
 
-- **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
-- **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 13 (chiusura), poi review finale del branch.
-- **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+- **Milestone chiuse:** M0 – Scheletro ✅, M1 – Ledger ✅ (unita in `main`), **M2a – Territorio ✅** (2026-11-04, branch `m2a-territorio`, da unire dopo la review finale).
+- **Prossimo passo:** review finale del branch `m2a-territorio` e merge; prova in gioco di M2a con un client (lista nella voce del Task 12); poi piano di M2b (danno ai blocchi, mantenimento, stabilità).
+- **Bloccanti noti:** il disco C: è quasi pieno e il MariaDB portatile ha i dati su C: (al 2026-11-04 ha fatto fallire una migrazione). Ambiente di questa sessione: `JAVA_HOME` = JBR 25.0.2 di IntelliJ, `GRADLE_USER_HOME=E:\gradle-home` (`~/.jdks` non c'è più). Docker resta assente (D-13).
+
+---
+
+## 2026-11-04 – M2a – chiusura
+
+**Cosa**
+- M2a completata: claim dei Tool Cupboard con riserva nell'indice e PIN (V005, `ClaimService`), registro dei blocchi piazzati nei chunk, protezione della struttura, cupboard con menu, dialog del PIN e confine, martello con upgrade dei tier, modulo `territory` cablato nel plugin.
+- Spec §6: il "Team massimo 6 nella tabella `team`" sostituito da un rimando al design M2 (basi condivise tramite PIN; il limite di 6 è della squadra Extraction, M5). Roadmap: M2 "🟡 M2a completata, M2b da pianificare", nota del team da 6 in M5.
+
+**File**
+- `BreachCore – Specifica tecnica del core plugin.md` (§6), `docs/roadmap.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat clean build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`, `verifyShadowJar` passato; conteggio dagli XML: **219 test, 0 failure, 0 error, 0 skipped**.
+- Benchmark del lookup dei claim (`ClaimIndexPerformanceTest`, 5.000 claim, 200.000 lookup): **media 344 ns** (DoD ≤ 50 µs). ✅
+- Smoke test su Paper: voce del Task 12 (avvio, health, tunable, comandi admin da console). Le prove in gioco restano da fare con un client.
+
+**Decisioni**
+- Nessuna nuova.
+
+**Aperto**
+- Prova in gioco di M2a (lista nella voce del Task 12).
+- `CLAUDE.md` §5 descrive ancora JDK 23/25 in `~/.jdks`, che non ci sono più: da aggiornare quando l'ambiente sarà sistemato.
 
 ---
 
