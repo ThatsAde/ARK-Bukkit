@@ -10,8 +10,27 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 10.
+- **Prossimo passo:** M2a Task 11.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-11-04 – M2a – Task 10 – Tool Cupboard: item, piazzamento, menu, PIN, confine
+
+**Cosa**
+- `territory/TerritoryTunables` (le 4 chiavi di D-38) e `territory/cupboard/`: `TerritoryItems`, `CupboardListener`, `CupboardMenu`, `PinDialogs` (Dialog API di Paper), `ClaimVisualizer`.
+
+**File**
+- `module-territory/src/main/java/org/breachsmp/core/territory/TerritoryTunables.java`, `.../cupboard/{TerritoryItems,CupboardListener,CupboardMenu,PinDialogs,ClaimVisualizer}.java`; `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat :module-territory:compileJava` → `BUILD SUCCESSFUL`. Firme Paper (Dialog API, `ClickCallback.Options`, `Bukkit.createInventory(holder, size, Component)`, `runTaskTimer` con `Consumer<BukkitTask>`) verificate per riflessione sul jar `paper-api 26.2.build.134-stable`. Nessun test unitario (UI Bukkit, come da piano); verifica nello smoke test.
+
+**Decisioni**
+- Nessuna nuova D-xx. Dettagli: `TerritoryTunables` creato qui (il Task 10 lo consuma) invece che nel Task 12, che lo registra; il formato del PIN si controlla prima di `tryPin`, così un PIN malformato non consuma tentativi e non va in audit; le risposte dei future tornano sempre sul main con `whenCompleteAsync(..., executors.main())` (un errore del DB completerebbe il future sul thread DB); un cupboard ancora in creazione (riserva) risponde "La base si sta ancora creando."; le tramogge non possono riempire il barile del cupboard (D-42).
+
+**Aperto**
+- Nessuno.
 
 ---
 

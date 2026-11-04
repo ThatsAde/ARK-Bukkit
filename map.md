@@ -556,3 +556,18 @@ Collega gli eventi a `ProtectionRules` (priorità HIGH, `ignoreCancelled`); solo
 | `BlockFromToEvent` | `flowAllowed` (solo se l'arrivo è in un claim) | – |
 
 Chi lo usa: `TerritoryModule.onEnable` (Task 12). Nessun test unitario: le regole sono in `ProtectionRulesTest`; verifica nello smoke test.
+
+### `territory/TerritoryTunables.java` ✅ (M2a Task 10, D-38)
+Record dei 4 tunable: `territory.claim_radius` (16, 1–64), `territory.claim_gap` (0, 0–64), `territory.max_cupboards_per_player` (50, 1–1000), `territory.pin_attempts_per_10_min` (5, 1–100). `register(TunableService)` va chiamato in `onLoad` (Task 12). Usato da `CupboardListener` e (limite PIN) da `ClaimService`.
+
+### `territory/cupboard/` ✅ (M2a Task 10)
+
+| Classe | Cosa fa | Chi la usa |
+| --- | --- | --- |
+| `TerritoryItems(PaperBridge, TerritoryConfig)` | `cupboard(amount)`, `hammer()`, `isCupboard`, `isHammer`, `cupboardMaterial()`; segno PDC `breachcore:item` = `tool_cupboard` \| `hammer`; nomi "Tool Cupboard", "Martello da costruzione" (portato da ToolCupboards `CupboardItems`) | listener, `ClaimSubcommand give` e ricette (Task 12) |
+| `CupboardListener` | `BlockPlaceEvent` HIGHEST di un cupboard → `refusePlacement` (messaggio per ogni `PlacementRefusal`) → `create`; successo: "Base protetta. Imposta il PIN." + `askNewPin`; errore DB: blocco tolto, smarcato, item restituito (Review Focus 2). `BlockBreakEvent` HIGH sul cupboard: sempre annullato; non autorizzato → "serve un Breach Core"; autorizzato → `remove`, poi blocco tolto, smarcato, item lasciato cadere. `PlayerInteractEvent` LOW sul cupboard: sempre annullato (D-42); autorizzato → menu, altrimenti dialog del PIN. `InventoryMoveItemEvent`: le tramogge non riempiono il barile. Bypass staff con `ProtectionListener.BYPASS_PERMISSION` | `TerritoryModule.onEnable` |
+| `CupboardMenu` (anche `Listener`) | Inventario 27 slot con `InventoryHolder` proprio: teste degli autorizzati negli slot 0–17 (clic = togli, conferma col secondo clic), info (20: creatore, data, raggio, autorizzati), "Cambia PIN" (22), "Mostra confine" (24); clic e drag sempre annullati; chi non è più autorizzato viene chiuso fuori | `CupboardListener`; registrato in `onEnable` |
+| `PinDialogs` | Dialog Paper (`DialogType.confirmation`, input testo `pin` max 8, `customClick` monouso, 2 minuti): `askPin` → `tryPin`, `askNewPin` → `setPin`; formato controllato prima (non consuma tentativi); callback riportato sul main con `executors.main()`; testi per ogni `PinResult` | `CupboardListener`, `CupboardMenu` |
+| `ClaimVisualizer(PaperBridge)` | `show(Player, ClaimBox)`: i 12 spigoli del cubo in `HAPPY_VILLAGER`, punto ogni 2 blocchi, solo a chi guarda, 10 frame da 1 s (portato da ToolCupboards) | `CupboardMenu` |
+
+Nessun test unitario (UI Bukkit): le regole sono in `ClaimServiceIT`; verifica nello smoke test.
