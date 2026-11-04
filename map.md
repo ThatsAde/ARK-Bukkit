@@ -37,13 +37,14 @@ core-domain     (api(core-api), niente Bukkit, niente I/O)
 core-platform   (core-api, core-domain, Hikari, Flyway, MariaDB driver; Paper compileOnly) → jar shadow
    ▲
 module-economy  (api core-api, implementation core-domain + Caffeine; I7 imposto da breach.module-conventions)
+module-territory (api core-api, implementation core-domain + core-paper-api, Paper compileOnly; I7)
    ▲
-core-platform   (implementation module-economy: unico che collega i moduli, ModuleCatalog)
+core-platform   (implementation module-economy, module-territory: unico che collega i moduli, ModuleCatalog)
 ```
 
 | File | Stato | Cosa contiene | Quando toccarlo |
 | --- | --- | --- | --- |
-| `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)`: `core-domain`, `core-api`, `core-platform`, `module-economy` | Aggiunta di un nuovo progetto Gradle |
+| `settings.gradle.kts` | ✅ | repository (Maven Central, Paper), `include(...)`: `core-domain`, `core-api`, `core-platform`, `core-paper-api`, `module-economy`, `module-territory` | Aggiunta di un nuovo progetto Gradle |
 | `gradle.properties` | ✅ | parallel, caching, `-Xmx2G` | Raramente |
 | `gradle/libs.versions.toml` | ✅ | catalogo versioni (Paper bloccato, Hikari, Flyway, MariaDB, JUnit, Testcontainers, jqwik 1.10.1, Caffeine 3.3.0) | Aggiunta/aggiornamento librerie (versioni con ≥2 settimane) |
 | `build-logic/src/main/kotlin/breach.java-conventions.gradle.kts` | ✅ | `java-library`, toolchain Java 25, UTF-8, `useJUnitPlatform()`; `BREACH_IT_JDBC_URL` come input dei task `Test` (D-13: niente esito "saltato" ripreso dalla cache); ogni task `Test` usa il build service `ItDatabaseLock` (`build-logic/src/main/kotlin/ItDatabaseLock.kt`, `maxParallelUsages = 1`, D-22): un solo task Test alla volta nella build | Regole comuni a tutti i moduli |
@@ -52,7 +53,8 @@ core-platform   (implementation module-economy: unico che collega i moduli, Modu
 | `build-logic/src/main/kotlin/breach.module-conventions.gradle.kts` | ✅ | Convention dei `module-*`: applica `breach.java-conventions` e **fallisce la configurazione** se `api`/`implementation`/`compileOnly`/`runtimeOnly` contengono un progetto diverso da `:core-api`/`:core-domain`/`:core-paper-api` (I7, D-21, D-34) |
 | `core-paper-api/build.gradle.kts` | ✅ | `api(core-api)`, Paper `compileOnly`; contiene solo `PaperBridge` (D-34) | Nuove capacità Paper per i moduli | Mai allentarla; i test possono usare `testFixtures(project(":core-platform"))` |
 | `module-economy/build.gradle.kts` | ✅ | `breach.module-conventions`; `api(core-api)`, `implementation(core-domain)`, Caffeine; test: testFixtures di `core-platform`, JUnit | Nuove librerie del modulo (da rilocare nello shadow di `core-platform`) |
-| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), plugin `java-test-fixtures` (`testFixturesApi(hikaricp)`, Flyway, Testcontainers, JUnit), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson`, `caffeine` sotto `org.breachsmp.core.libs.*`, esclusi jspecify ed errorprone), `implementation(project(":module-economy"))`, jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
+| `module-territory/build.gradle.kts` | ✅ (M2a Task 7) | `breach.module-conventions`; `api(core-api)`, `implementation(core-domain, core-paper-api)`, Paper `compileOnly`; test: testFixtures di `core-platform`, Paper, JUnit | Nuove librerie del modulo |
+| `core-platform/build.gradle.kts` | ✅ | dipendenze runtime, Paper compileOnly (+ testImplementation), plugin `java-test-fixtures` (`testFixturesApi(hikaricp)`, Flyway, Testcontainers, JUnit), `processResources` (espande `${version}` in `plugin.yml`), `shadowJar` (`filesMatching("META-INF/services/**")` con `DuplicatesStrategy.INCLUDE` + `mergeServiceFiles()`, esclude slf4j, relocation `hikari`, `flyway`, `mariadb`, `jackson`, `caffeine` sotto `org.breachsmp.core.libs.*`, esclusi jspecify ed errorprone), `implementation(project(":module-economy"))` e `module-territory`, jar normale con classifier `plain` (D-28), `runServer`, task `verifyShadowJar` (agganciato a `check`/`build`: fallisce se i file di servizio Flyway/`java.sql.Driver` nel jar non contengono le voci rilocate attese) | Nuove librerie, nuovi `module-*`, relocation |
 
 ---
 
@@ -409,6 +411,7 @@ Migrazioni applicate (aggiorna a ogni nuova migrazione):
 | V002 | `V002__platform_season.sql` | platform | `season(id, name, started_at, ended_at)`, `current_season(singleton=1, season_id)` con stagione 1, indice `ix_player_name` |
 | V004 | `V004__economy_ledger.sql` | economy | `account(id, season_id, owner_type, owner_ref, balance, version, frozen_at)` con `uq_owner` e CHECK saldo ≥ 0 tranne SYSTEM; `ledger_tx(id, season_id, idem_key UNIQUE, kind, actor, created_at, meta JSON)`; `ledger_entry(tx_id, seq, account_id, delta, balance_after)` con FK |
 | V003 | `V003__platform_audit_tunable_job.sql` | platform | `audit_log(id, at, actor, action, subject, detail JSON)`, `tunable(tkey, value, updated_at, updated_by)`, `scheduled_job(job_id, next_run_at, locked_by, locked_until, last_run_at, last_status, last_error)` |
+| V005 | `V005__territory_claims.sql` | territory | `claim(id, season_id, world_uuid, cup_x/y/z, radius, created_by, created_at, pin_salt, pin_hash, shield_until, raid_window_start, raid_window_changed_at)` con `uq_claim_cupboard (season_id, world_uuid, cup_x, cup_y, cup_z)`, `ix_claim_creator`, FK a `season`; `claim_member(claim_id, uuid, added_at, added_by)` con FK `ON DELETE CASCADE`. Le colonne `shield_*`/`raid_*` sono per M3 |
 
 Test di risorse: `PluginYmlTest` (Task 9) verifica che `main` punti a `ARKPlugin` e che la versione sia stata espansa.
 
@@ -507,3 +510,19 @@ Test: `EconomyModuleIT` (cablaggio con i servizi reali di piattaforma: ledger pu
 
 **Jar shadow:** Caffeine rilocata in `org.breachsmp.core.libs.caffeine`, `org.jspecify` e `com.google.errorprone` esclusi; `verifyShadowJar` controlla che `org/breachsmp/core/libs/caffeine/cache/Caffeine.class` ci sia e che non ci siano voci `com/github/benmanes/`.
 
+---
+
+## 9. `module-territory` – claim, Tool Cupboard, protezione, tier (M2a)
+Percorsi abbreviati: `territory/` = `module-territory/src/main/java/org/breachsmp/core/territory/`. Dipende da `core-api`, `core-domain`, `core-paper-api` e Paper `compileOnly` (I7, D-34).
+
+### `territory/claim/` ✅ (M2a Task 7)
+
+| Classe | Cosa fa | Chi la usa |
+| --- | --- | --- |
+| `PlacementRefusal` | `WORLD_DISABLED`, `OVERLAPS_FOREIGN_CLAIM`, `LIMIT_REACHED`, `POSITION_TAKEN` | `ClaimService.refusePlacement`, listener del cupboard (Task 10) |
+| `PinResult` | `AUTHORIZED`, `ALREADY_AUTHORIZED`, `WRONG_PIN`, `NO_PIN_SET`, `RATE_LIMITED` | `ClaimService.tryPin`, dialog del PIN (Task 10) |
+| `LiveClaim` | Stato in memoria (id, `ClaimBox`, creatore, data, autorizzati, `Optional<PinHash>`, `pending`); uguaglianza per identità (chiave dell'indice); `view()` → `ClaimView`; mutatori package-private chiamati solo da `ClaimService` sul main dopo il DB (D-36) | `ClaimService`, listener |
+| `ClaimDao` | JDBC su una `Connection` data: `insert` (id generato), `delete` (membri in cascata, D-35), `addMember` (idempotente), `removeMember`, `setPin`, `loadSeason` (`Row` con membri) | solo `ClaimService` |
+| `ClaimService` | Implementa `TerritoryService`. `loadNow()` (bloccante, `onEnable`); letture in memoria sul main: `claimCovering`, `claimByCupboard`, `claimAt` (salta le riserve), `isAuthorized`, `refusePlacement(player, box, gap, maxPerPlayer, worlds)` (ordine: mondo, posizione, limite, sovrapposizione con claim dove non è autorizzato; le riserve contano), `activeCount`, `tierOf`, `hpOfTier`. Scritture: `create` (riserva subito nell'indice, INSERT claim + creatore in una transazione, audit `CLAIM_CREATE`; se il DB fallisce la riserva sparisce), `remove` (DELETE, audit `CLAIM_REMOVE` con `reason`), `setPin` (solo autorizzati, hash su `compute`, audit `TC_PIN_SET`), `tryPin` (già autorizzato / senza PIN prima del limite; due `SlidingWindowLimiter` da 10 min per giocatore e per claim con limite dal `LongSupplier`; verifica su `compute`; errore → audit `TC_PIN_FAILED`, giusto → `addMember` + audit `TC_AUTHORIZE`), `unauthorize` (qualsiasi autorizzato toglie chiunque, audit `TC_UNAUTHORIZE`). Audit dopo il commit, fallimento → SEVERE (D-18) | `TerritoryModule` (Task 12), listener (Task 9–11), M3 via `TerritoryService` |
+
+Test: `ClaimServiceIT` (9: creazione con membro e audit, riserva che blocca un secondo piazzamento sovrapposto, sovrapposizione ammessa dove si è autorizzati + mondo disabilitato + limite, INSERT fallito senza claim fantasma, PIN con audit degli errori e mai in chiaro, limite dei tentativi per giocatore e per claim, rimozione degli autorizzati e PIN solo per gli autorizzati, rimozione del claim, caricamento all'avvio).

@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-paper-api"))
     implementation(project(":module-economy"))
+    implementation(project(":module-territory"))
 
     implementation(libs.hikaricp)
     implementation(libs.flyway.core)

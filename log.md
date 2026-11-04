@@ -10,8 +10,30 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 7.
+- **Prossimo passo:** M2a Task 8.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-11-04 – M2a – Task 7 – schema dei claim (V005) e `ClaimService`
+
+**Cosa**
+- Nuovo progetto `module-territory` (`breach.module-conventions`; `core-api`, `core-domain`, `core-paper-api`, Paper `compileOnly`), incluso in `settings.gradle.kts` e collegato in `core-platform`.
+- Migrazione `V005__territory_claims.sql`: `claim` e `claim_member`.
+- `territory/claim/`: `PlacementRefusal`, `PinResult`, `LiveClaim`, `ClaimDao`, `ClaimService` (implementa `TerritoryService`; riserva nell'indice prima dell'INSERT, D-36; PIN con limite per giocatore e per claim, D-37; rimozione = DELETE, D-35).
+
+**File**
+- `settings.gradle.kts`, `core-platform/build.gradle.kts`, `module-territory/build.gradle.kts`, `core-platform/src/main/resources/db/migration/V005__territory_claims.sql`, `module-territory/src/main/java/org/breachsmp/core/territory/claim/{PlacementRefusal,PinResult,LiveClaim,ClaimDao,ClaimService}.java`; test `ClaimServiceIT`; `map.md` (§2, §7 V005, nuova §9), `log.md`.
+
+**Verifica**
+- RED: `.\gradlew.bat :module-territory:test` → `cannot find symbol` (`ClaimService`, `LiveClaim`, `PlacementRefusal`, `PinResult`).
+- GREEN: `.\gradlew.bat :module-territory:test` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; `ClaimServiceIT` 9/9, skipped=0.
+
+**Decisioni**
+- Nessuna nuova D-xx. Scelte di dettaglio non fissate dal piano: `tryPin` risponde `ALREADY_AUTHORIZED` e `NO_PIN_SET` **prima** del limite dei tentativi (non si indovina nulla, non consumano tentativi); il limite si controlla prima per giocatore, poi per claim. `claimAt` (API per M3) salta i claim solo riservati, `claimCovering` (listener) li include, così una riserva protegge già. `setPin` e `unauthorize` da un non autorizzato falliscono con `IllegalStateException`; `remove` non controlla chi agisce (lo fanno il listener e il comando admin). Audit aggiuntivi `TC_PIN_SET`, `TC_AUTHORIZE`, `TC_UNAUTHORIZE`. Audit dopo il commit e fallimento → SEVERE, come in `EconomyAdmin` (D-18).
+
+**Aperto**
+- Ambiente: il 2026-11-04 il disco C: era pieno (0 GB liberi) e mancavano `~/.jdks` (JDK 23 e 25) e la cache di Gradle. Per questa sessione: `JAVA_HOME` = JBR 25.0.2 di IntelliJ (`E:\IntelliJ IDEA 261.21849.20\jbr`), `GRADLE_USER_HOME=E:\gradle-home`. Il MariaDB portatile resta su C: e ha funzionato. `CLAUDE.md` §5 descrive ancora il vecchio ambiente.
 
 ---
 

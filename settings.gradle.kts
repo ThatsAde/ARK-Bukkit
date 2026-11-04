@@ -28,5 +28,6 @@ include(
     "core-api",
     "core-platform",
     "core-paper-api",
-    "module-economy"
+    "module-economy",
+    "module-territory"
 )
