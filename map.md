@@ -526,3 +526,17 @@ Percorsi abbreviati: `territory/` = `module-territory/src/main/java/org/breachsm
 | `ClaimService` | Implementa `TerritoryService`. `loadNow()` (bloccante, `onEnable`); letture in memoria sul main: `claimCovering`, `claimByCupboard`, `claimAt` (salta le riserve), `isAuthorized`, `refusePlacement(player, box, gap, maxPerPlayer, worlds)` (ordine: mondo, posizione, limite, sovrapposizione con claim dove non è autorizzato; le riserve contano), `activeCount`, `tierOf`, `hpOfTier`. Scritture: `create` (riserva subito nell'indice, INSERT claim + creatore in una transazione, audit `CLAIM_CREATE`; se il DB fallisce la riserva sparisce), `remove` (DELETE, audit `CLAIM_REMOVE` con `reason`), `setPin` (solo autorizzati, hash su `compute`, audit `TC_PIN_SET`), `tryPin` (già autorizzato / senza PIN prima del limite; due `SlidingWindowLimiter` da 10 min per giocatore e per claim con limite dal `LongSupplier`; verifica su `compute`; errore → audit `TC_PIN_FAILED`, giusto → `addMember` + audit `TC_AUTHORIZE`), `unauthorize` (qualsiasi autorizzato toglie chiunque, audit `TC_UNAUTHORIZE`). Audit dopo il commit, fallimento → SEVERE (D-18) | `TerritoryModule` (Task 12), listener (Task 9–11), M3 via `TerritoryService` |
 
 Test: `ClaimServiceIT` (9: creazione con membro e audit, riserva che blocca un secondo piazzamento sovrapposto, sovrapposizione ammessa dove si è autorizzati + mondo disabilitato + limite, INSERT fallito senza claim fantasma, PIN con audit degli errori e mai in chiaro, limite dei tentativi per giocatore e per claim, rimozione degli autorizzati e PIN solo per gli autorizzati, rimozione del claim, caricamento all'avvio).
+
+### `territory/block/PlacedBlockTracker.java` ✅ (M2a Task 8, D-39)
+Listener e registro "piazzato da un giocatore" nel PDC dei chunk (chiave `breachcore:placed`, `INTEGER_ARRAY` di `PlacedBlockSet`). Cache `Map<UUID mondo, Map<chunkKey, PlacedBlockSet>>` riempita alla prima domanda (copre anche i chunk caricati prima di `onEnable`), svuotata da `ChunkUnloadEvent`/`WorldUnloadEvent`; il PDC si riscrive a ogni modifica (rimosso se vuoto).
+
+| Metodo / evento | Cosa fa |
+| --- | --- |
+| `isPlaced(Block)` | `true` se segnato e non aria (un segno su aria vale come terreno) |
+| `markPlaced(Block)`, `unmark(Block)` | Aggiungono/tolgono il segno e riscrivono il PDC solo se cambia qualcosa |
+| `BlockPlaceEvent` (MONITOR, anche `BlockMultiPlaceEvent` che condivide la HandlerList) | Marca il blocco (o tutte le posizioni del multi-piazzamento) |
+| `BlockBreakEvent`, `BlockBurnEvent`, `EntityExplodeEvent`/`BlockExplodeEvent` (MONITOR) | Smarca |
+| `BlockPistonExtendEvent`/`RetractEvent` (MONITOR) | Sposta i segni dei blocchi mossi di un passo in `getDirection()` |
+| `EntityChangeBlockEvent` di `FallingBlock` | Partenza da un blocco segnato → smarca e mette `breachcore:placed_falling` sull'entità; atterraggio di un'entità con quel segno → marca |
+
+Chi lo usa: `ProtectionListener` (Task 9), `CupboardListener` (Task 10), `HammerListener` (Task 11); registrato da `TerritoryModule.onEnable` (Task 12). Nessun test unitario (tipi Bukkit): la logica è in `PlacedBlockSet`; verifica nello smoke test.

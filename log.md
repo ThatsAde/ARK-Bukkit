@@ -10,8 +10,27 @@
 
 - **Milestone chiusa:** M0 – Scheletro ✅ (DoD verificata end-to-end il 2026-10-22 su Paper 26.2 + MariaDB 11.4.13).
 - **Milestone in corso:** M2a – Territorio (claim, Tool Cupboard, PIN, protezione, tier, martello), piano `docs/superpowers/plans/2026-10-25-m2a-territorio.md`, branch `m2a-territorio`. M1 è chiusa e unita in `main`.
-- **Prossimo passo:** M2a Task 8.
+- **Prossimo passo:** M2a Task 9.
 - **Bloccanti noti:** nessuno. Docker resta assente, ma gli IT girano sul MariaDB portatile (D-13, comandi in `CLAUDE.md` §5).
+
+---
+
+## 2026-11-04 – M2a – Task 8 – registro dei blocchi piazzati nei chunk
+
+**Cosa**
+- `territory/block/PlacedBlockTracker`: listener che tiene il registro D-39 nel PDC dei chunk (piazzamento, rottura, fuoco, esplosioni, pistoni, blocchi che cadono).
+
+**File**
+- `module-territory/src/main/java/org/breachsmp/core/territory/block/PlacedBlockTracker.java`; `map.md`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat :module-territory:compileJava` → `BUILD SUCCESSFUL`. Nessun test unitario (tipi Bukkit, come da piano); verifica funzionale nello smoke test del Task 12.
+
+**Decisioni**
+- Nessuna nuova D-xx. Dettagli: la cache si riempie alla prima domanda invece che su `ChunkLoadEvent` (copre i chunk caricati prima di `onEnable` e non legge il PDC di chunk mai interrogati); un blocco che cade resta struttura solo se partiva da una posizione segnata (segno `breachcore:placed_falling` sull'entità), così la sabbia naturale che cade non diventa struttura; `BlockMultiPlaceEvent` gestito nello stesso handler di `BlockPlaceEvent` (stessa HandlerList, due handler marcherebbero due volte).
+
+**Aperto**
+- Nessuno.
 
 ---
 
