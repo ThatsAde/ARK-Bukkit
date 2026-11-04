@@ -40,8 +40,14 @@ public final class ProtectionRules {
         return spot.claimId() == NO_CLAIM || !spot.structure();
     }
 
-    /** Un pistone muove blocchi solo dentro il proprio claim (o fuori da ogni claim). */
-    public static boolean pistonAllowed(long pistonClaim, long[] movedClaims) {
+    /**
+     * Un pistone muove blocchi solo dentro il proprio claim (o fuori da ogni claim), e mai un Tool Cupboard: il claim
+     * resterebbe senza cupboard nella sua posizione.
+     */
+    public static boolean pistonAllowed(long pistonClaim, long[] movedClaims, boolean movesCupboard) {
+        if (movesCupboard) {
+            return false;
+        }
         for (long claim : movedClaims) {
             if (claim != pistonClaim) {
                 return false;

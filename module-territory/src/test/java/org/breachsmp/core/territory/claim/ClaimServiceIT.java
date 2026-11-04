@@ -182,6 +182,17 @@ class ClaimServiceIT {
     }
 
     @Test
+    void aSecondRemoveWhileTheFirstIsInFlightIsRefused() throws Exception {
+        LiveClaim claim = claims.create(ALICE, new ClaimBox(W, 0, 64, 0, 16)).get(5, SECONDS);
+        CompletableFuture<Void> first = claims.remove(claim.id(), ALICE, "rotto");     // non attendere
+        CompletableFuture<Void> second = claims.remove(claim.id(), BOB, "rotto");     // due rotture insieme: un solo item
+        first.get(5, SECONDS);
+        ExecutionException error = assertThrows(ExecutionException.class, () -> second.get(5, SECONDS));
+        assertInstanceOf(IllegalStateException.class, error.getCause());
+        assertEquals(1, count("SELECT COUNT(*) FROM audit_log WHERE action = 'CLAIM_REMOVE'"));
+    }
+
+    @Test
     void loadRestoresEveryClaimOfTheSeason() throws Exception {
         LiveClaim claim = claims.create(ALICE, new ClaimBox(W, 0, 64, 0, 16)).get(5, SECONDS);
         claims.setPin(claim.id(), "4821", ALICE).get(5, SECONDS);

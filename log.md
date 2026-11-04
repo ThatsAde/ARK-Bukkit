@@ -14,6 +14,33 @@
 
 ---
 
+## 2026-11-04 – M2a – review finale e correzioni
+
+**Cosa**
+- Review finale del branch `m2a-territorio`: **self-review** dell'autore. Il harness di questa sessione non permette di avviare un revisore separato senza richiesta esplicita, quindi è una review più debole di quella di un revisore "fresco".
+- Fix 1 (Important): due rotture del cupboard mentre la prima rimozione era ancora sul DB passavano entrambe, con due `CLAIM_REMOVE` e **due item del cupboard lasciati cadere** (duplicazione). Ora `ClaimService.remove` permette una sola rimozione alla volta (`LiveClaim.beginRemoval`, annullata se il DB fallisce); `CupboardListener` ignora in silenzio la seconda.
+- Fix 2 (Important): un pistone dentro il claim poteva spostare il barile del cupboard e il claim restava senza cupboard nella sua posizione, non più rimovibile rompendolo. Ora `ProtectionRules.pistonAllowed(..., movesCupboard)` lo vieta e `ProtectionListener` lo calcola.
+
+**File**
+- `module-territory/.../claim/{ClaimService,LiveClaim}.java`, `.../cupboard/CupboardListener.java`, `.../protect/ProtectionListener.java`, `core-domain/.../territory/ProtectionRules.java`; test `ClaimServiceIT`, `ProtectionRulesTest`; `map.md`, `log.md`.
+
+**Verifica**
+- Fix 1: `ClaimServiceIT.aSecondRemoveWhileTheFirstIsInFlightIsRefused` RED (la seconda `remove` riusciva) → GREEN.
+- Fix 2: `ProtectionRulesTest.pistonNeverMovesAToolCupboard` RED (`cannot be applied to given types`) → GREEN.
+- `.\gradlew.bat build` (con `BREACH_IT_*`) → `BUILD SUCCESSFUL`; **221 test, 0 failure, 0 error, 0 skipped**.
+
+**Decisioni**
+- Nessuna nuova D-xx.
+
+**Aperto (minori rimandati)**
+- Rompere il terreno sotto una porta (o sotto torce e simili) fa cadere la struttura per fisica.
+- Dispenser che versano liquidi o accendono fuoco dentro un claim (`BlockDispenseEvent`) non sono intercettati.
+- Le mappe dei limiti del PIN non si svuotano mai (poche voci per giocatore, solo in memoria).
+- Direzione di `BlockPistonRetractEvent.getDirection()` (movimento verso il pistone) dedotta dal sorgente di CraftBukkit, non provata in gioco.
+- Il martello conta i materiali nello zaino ma `removeItem` può prenderli anche dalla mano secondaria.
+
+---
+
 ## 2026-11-04 – M2a – chiusura
 
 **Cosa**

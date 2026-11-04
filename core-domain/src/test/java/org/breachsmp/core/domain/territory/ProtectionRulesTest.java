@@ -49,11 +49,17 @@ class ProtectionRulesTest {
 
     @Test
     void pistonMayNotCrossAClaimBoundary() {
-        assertTrue(ProtectionRules.pistonAllowed(7, new long[]{7, 7}));
-        assertTrue(ProtectionRules.pistonAllowed(0, new long[]{0, 0}));
-        assertFalse(ProtectionRules.pistonAllowed(0, new long[]{0, 7}));
-        assertFalse(ProtectionRules.pistonAllowed(7, new long[]{7, 0}));
-        assertFalse(ProtectionRules.pistonAllowed(7, new long[]{8}));
+        assertTrue(ProtectionRules.pistonAllowed(7, new long[]{7, 7}, false));
+        assertTrue(ProtectionRules.pistonAllowed(0, new long[]{0, 0}, false));
+        assertFalse(ProtectionRules.pistonAllowed(0, new long[]{0, 7}, false));
+        assertFalse(ProtectionRules.pistonAllowed(7, new long[]{7, 0}, false));
+        assertFalse(ProtectionRules.pistonAllowed(7, new long[]{8}, false));
+    }
+
+    @Test
+    void pistonNeverMovesAToolCupboard() {
+        // anche dentro il proprio claim: il claim resterebbe senza cupboard nella sua posizione
+        assertFalse(ProtectionRules.pistonAllowed(7, new long[]{7, 7}, true));
     }
 
     @Test

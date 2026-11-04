@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Stato in memoria di un claim; si modifica solo sul main thread, sempre dopo la scrittura nel DB (D-36). Uguaglianza per
@@ -25,6 +26,7 @@ public final class LiveClaim {
     private final Set<UUID> members = ConcurrentHashMap.newKeySet();
     private volatile PinHash pin;
     private volatile boolean pending;
+    private final AtomicBoolean removing = new AtomicBoolean();
 
     LiveClaim(long id, ClaimBox box, UUID createdBy, Instant createdAt, Set<UUID> members, PinHash pin, boolean pending) {
         this.id = id;
@@ -82,6 +84,15 @@ public final class LiveClaim {
 
     void removeMember(UUID uuid) {
         members.remove(uuid);
+    }
+
+    /** @return {@code false} se una rimozione è già in corso: due rotture insieme non devono dare due cupboard */
+    boolean beginRemoval() {
+        return removing.compareAndSet(false, true);
+    }
+
+    void cancelRemoval() {
+        removing.set(false);
     }
 
     void pin(PinHash pin) {

@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -130,7 +131,11 @@ public final class CupboardListener implements Listener {
         }
         claims.remove(claim.id(), player.getUniqueId(), "cupboard rotto").whenCompleteAsync((ignored, error) -> {
             if (error != null) {
-                logger.log(Level.WARNING, "Rimozione del claim #" + claim.id() + " fallita", error);
+                Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+                if (cause instanceof IllegalStateException) {
+                    return;   // un'altra rottura la sta già rimuovendo: un solo cupboard torna indietro
+                }
+                logger.log(Level.WARNING, "Rimozione del claim #" + claim.id() + " fallita", cause);
                 deny(player, "Impossibile rimuovere la base, riprova.");
                 return;
             }

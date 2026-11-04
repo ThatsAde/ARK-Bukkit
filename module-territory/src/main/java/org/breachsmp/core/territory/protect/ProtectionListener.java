@@ -194,15 +194,17 @@ public final class ProtectionListener implements Listener {
         }
     }
 
-    /** Partenza e arrivo di ogni blocco mosso devono stare nel claim del pistone (Review Focus 4). */
+    /** Partenza e arrivo di ogni blocco mosso devono stare nel claim del pistone (Review Focus 4); un cupboard non si muove. */
     private boolean pistonAllowed(Block piston, List<Block> moved, BlockFace direction) {
         long[] movedClaims = new long[moved.size() * 2];
+        boolean movesCupboard = false;
         for (int i = 0; i < moved.size(); i++) {
             Block block = moved.get(i);
             movedClaims[2 * i] = claimId(block);
             movedClaims[2 * i + 1] = claimId(block.getRelative(direction));
+            movesCupboard |= claims.claimByCupboard(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ()).isPresent();
         }
-        return ProtectionRules.pistonAllowed(claimId(piston), movedClaims);
+        return ProtectionRules.pistonAllowed(claimId(piston), movedClaims, movesCupboard);
     }
 
     private void removeProtected(List<Block> blocks) {

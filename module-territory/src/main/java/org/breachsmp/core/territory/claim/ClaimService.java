@@ -163,11 +163,17 @@ public final class ClaimService implements TerritoryService {
                 }, executors.main());
     }
 
-    /** Cancella il claim e i suoi autorizzati (D-35), poi libera l'area. {@code actor} {@code null} = console. */
+    /**
+     * Cancella il claim e i suoi autorizzati (D-35), poi libera l'area. {@code actor} {@code null} = console. Una seconda
+     * rimozione mentre la prima è in corso fallisce con {@link IllegalStateException}. Main thread.
+     */
     public CompletableFuture<Void> remove(long claimId, UUID actor, String reason) {
         LiveClaim claim = byId.get(claimId);
         if (claim == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Claim #" + claimId + " inesistente"));
+        }
+        if (!claim.beginRemoval()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Claim #" + claimId + " già in rimozione"));
         }
         return CompletableFuture.runAsync(() -> {
             try (Connection c = dataSource.getConnection()) {
@@ -178,9 +184,14 @@ public final class ClaimService implements TerritoryService {
             Map<String, Object> detail = boxDetail(claim.box());
             detail.put("reason", reason == null ? "" : reason);
             auditQuietly(new AuditEntry(actor, "CLAIM_REMOVE", subject(claimId), detail));
-        }, executors.db()).thenRunAsync(() -> {
+        }, executors.db()).handleAsync((ignored, error) -> {
+            if (error != null) {
+                claim.cancelRemoval();
+                throw error instanceof CompletionException completion ? completion : new CompletionException(error);
+            }
             unreserve(claim);
             byId.remove(claimId);
+            return null;
         }, executors.main());
     }
 
