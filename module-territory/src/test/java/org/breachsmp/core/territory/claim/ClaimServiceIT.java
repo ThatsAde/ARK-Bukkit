@@ -88,10 +88,15 @@ class ClaimServiceIT {
 
     @AfterEach
     void tearDown() throws InterruptedException {
-        db.shutdown();
-        compute.shutdown();
-        db.awaitTermination(5, TimeUnit.SECONDS);
-        compute.awaitTermination(5, TimeUnit.SECONDS);
+        // Senza DB TestDatabase salta il test prima che gli executor esistano (D-13).
+        if (db != null) {
+            db.shutdown();
+            db.awaitTermination(5, TimeUnit.SECONDS);
+        }
+        if (compute != null) {
+            compute.shutdown();
+            compute.awaitTermination(5, TimeUnit.SECONDS);
+        }
         if (dataSource != null) {
             dataSource.close();
         }

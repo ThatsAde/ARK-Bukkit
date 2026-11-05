@@ -14,6 +14,21 @@
 
 ---
 
+## 2026-11-05 – README e IT del territorio senza DB
+
+**Cosa**
+- Aggiunto `README.md` in inglese per la pubblicazione del repo (cosa fa il plugin, regole di design, moduli, test, build, roadmap).
+- `ClaimServiceIT.tearDown` chiamava `shutdown()` su executor mai creati quando `TestDatabase` salta il test (nessun DB): 10 test su 11 fallivano con `NullPointerException` invece di risultare saltati, contro D-13. Ora gli executor sono controllati come negli altri IT.
+
+**File**
+- `README.md`, `module-territory/src/test/java/org/breachsmp/core/territory/claim/ClaimServiceIT.java`, `log.md`.
+
+**Verifica**
+- `.\gradlew.bat build` **senza** `BREACH_IT_*` → `BUILD SUCCESSFUL`; dagli XML: **221 test, 0 failure, 0 error, 60 skipped** (gli IT). Prima della correzione: `:module-territory:test` falliva (10 failed, 1 skipped).
+- Gli IT con DB non sono stati rieseguiti (cambia solo il `tearDown`).
+
+---
+
 ## 2026-11-04 – M2a – review finale e correzioni
 
 **Cosa**
