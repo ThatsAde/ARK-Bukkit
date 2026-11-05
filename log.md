@@ -8,8 +8,8 @@
 
 ## Stato attuale
 
-- **Milestone chiuse:** M0 – Scheletro ✅, M1 – Ledger ✅ (unita in `main`), **M2a – Territorio ✅** (2026-11-04, branch `m2a-territorio`, da unire dopo la review finale).
-- **Prossimo passo:** review finale del branch `m2a-territorio` e merge; prova in gioco di M2a con un client (lista nella voce del Task 12); poi piano di M2b (danno ai blocchi, mantenimento, stabilità).
+- **Milestone chiuse:** M0 – Scheletro ✅, M1 – Ledger ✅ (unita in `main`), **M2a – Territorio ✅** (2026-11-04, unita in `main` il 2026-11-05 con fast-forward).
+- **Prossimo passo:** prova in gioco di M2a con un client (lista nella voce del Task 12); poi piano di M2b (danno ai blocchi, mantenimento, stabilità).
 - **Bloccanti noti:** il disco C: è quasi pieno e il MariaDB portatile ha i dati su C: (al 2026-11-04 ha fatto fallire una migrazione). Ambiente di questa sessione: `JAVA_HOME` = JBR 25.0.2 di IntelliJ, `GRADLE_USER_HOME=E:\gradle-home` (`~/.jdks` non c'è più). Docker resta assente (D-13).
 
 ---
