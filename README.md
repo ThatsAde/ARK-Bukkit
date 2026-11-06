@@ -117,3 +117,7 @@ The internal docs are in Italian, since that's the language the server team work
 - `docs/roadmap.md`: the milestone plan in more detail.
 
 Code, identifiers and the database schema are in English. Comments, Javadoc and player-facing messages are in Italian.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
